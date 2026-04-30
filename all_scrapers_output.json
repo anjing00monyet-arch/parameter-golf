@@ -1,0 +1,263 @@
+{
+  "merged_at": "2026-04-30T11:39:15.685775",
+  "sources": [
+    {
+      "file": "web_5s_output.json",
+      "data": {
+        "scraped_at": "2026-04-30T11:39:10.674235",
+        "elapsed_seconds": 2.27,
+        "results": [
+          {
+            "name": "PyPI New Packages",
+            "url": "https://pypi.org/rss/packages.xml",
+            "items": [
+              "PyPI newest packages",
+              "dasmixer added to PyPI",
+              "thigh-us-segmentation added to PyPI",
+              "agent-recall-ai added to PyPI",
+              "pyside6-widgets added to PyPI",
+              "pdf-autofillr-plugins added to PyPI",
+              "ollama-benchmarker added to PyPI",
+              "swiss-truth-haystack added to PyPI",
+              "sdlc-framework added to PyPI",
+              "codex-limit added to PyPI",
+              "chronoise added to PyPI",
+              "ros-openusd-compliance-checker added to PyPI",
+              "pdf-autofillr-cli added to PyPI",
+              "runtimekit-cli added to PyPI",
+              "beastcrypt added to PyPI",
+              "cyrapeft added to PyPI",
+              "scellrun added to PyPI",
+              "anet-sdk added to PyPI",
+              "tvb-phaseplane added to PyPI",
+              "triad-base added to PyPI"
+            ],
+            "error": null
+          },
+          {
+            "name": "PyPI Latest Updates",
+            "url": "https://pypi.org/rss/updates.xml",
+            "items": [
+              "PyPI recent updates",
+              "tom-iag 0.2.14",
+              "pygpubench 0.0.3",
+              "dasmixer 0.3.0",
+              "trustifai 0.1.8",
+              "tess-ida-tools 1.1.9",
+              "thoughtleaders-cli 0.6.7",
+              "thigh-us-segmentation 0.1.0",
+              "stardag 0.6.0",
+              "cyrapeft 0.1.4",
+              "news48 0.4.2",
+              "tsunagi-ollama-bridge 1.1.0.post3",
+              "imansur-ytb 0.3.4",
+              "aws-resource-validator-appflow 2.0.2",
+              "aws-resource-validator-appfabric 2.0.2",
+              "aws-resource-validator-appconfigdata 2.0.2",
+              "aws-resource-validator-appconfig 2.0.2",
+              "aws-resource-validator-apigatewayv2 2.0.2",
+              "aws-resource-validator-apigatewaymanagementapi 2.0.2",
+              "aws-resource-validator-apigateway 2.0.2"
+            ],
+            "error": null
+          },
+          {
+            "name": "GitHub Trending",
+            "url": "https://github.com/trending",
+            "items": [
+              "warpdotdev /warp",
+              "TauricResearch /TradingAgents",
+              "mattpocock /skills",
+              "obra /superpowers",
+              "lukilabs /craft-agents-oss",
+              "public-apis /public-apis",
+              "1jehuang /jcode",
+              "soxoj /maigret",
+              "HunxByts /GhostTrack",
+              "iamgio /quarkdown",
+              "ghostty-org /ghostty",
+              "ForrestKnight /open-source-cs",
+              "browserbase /skills"
+            ],
+            "error": null
+          },
+          {
+            "name": "GitHub Search ML",
+            "url": "https://github.com/search?q=machine+learning&type=repositories",
+            "items": [
+              "josephmisiti/awesome-machine-learning",
+              "wepe/MachineLearning",
+              "Jack-Cherish/Machine-Learning",
+              "lawlite19/MachineLearning_Python",
+              "udacity/machine-learning",
+              "Azure/MachineLearningNotebooks",
+              "trekhleb/homemade-machine-learning",
+              "lazyprogrammer/machine_learning_examples",
+              "ujjwalkarn/Machine-Learning-Tutorials",
+              "ZuzooVn/machine-learning-for-software-engineers"
+            ],
+            "error": null
+          },
+          {
+            "name": "npm RSS",
+            "url": "https://registry.npmjs.org/-/rss",
+            "items": [
+              "<![CDATA[npm recent updates]]>",
+              "<![CDATA[@optiqcode/cli]]>",
+              "<![CDATA[envelure-preview]]>",
+              "<![CDATA[@builder.io/dev-tools]]>",
+              "<![CDATA[@vkontakte/video-upload-sdk]]>",
+              "<![CDATA[@jsonic/directive]]>",
+              "<![CDATA[@storentia/sdk]]>",
+              "<![CDATA[app.hypergames.hypersdk]]>",
+              "<![CDATA[leakguard]]>",
+              "<![CDATA[@proveanything/smartlinks-utils-ui]]>",
+              "<![CDATA[miku-cursor-kit]]>",
+              "<![CDATA[@ionic-native-ohos/in-app-browser]]>",
+              "<![CDATA[@kitelev/exocortex-cli]]>",
+              "<![CDATA[@atlassian-test-prod/synth-check]]>",
+              "<![CDATA[@sentry/api]]>",
+              "<![CDATA[imap-rest-mailcow]]>",
+              "<![CDATA[@eclipse-glsp-examples/workflow-glsp]]>",
+              "<![CDATA[@eclipse-glsp/client]]>",
+              "<![CDATA[fmt-init]]>",
+              "<![CDATA[@eclipse-glsp/sprotty]]>"
+            ],
+            "error": null
+          }
+        ]
+      }
+    },
+    {
+      "file": "web_5s_advanced_output.json",
+      "data": {
+        "scraped_at": "2026-04-30T11:39:15.660503",
+        "elapsed_seconds": 4.85,
+        "results": [
+          {
+            "name": "PyPI New Packages",
+            "url": "https://pypi.org/rss/packages.xml",
+            "items": [
+              "PyPI newest packages",
+              "dasmixer added to PyPI",
+              "thigh-us-segmentation added to PyPI",
+              "agent-recall-ai added to PyPI",
+              "pyside6-widgets added to PyPI",
+              "pdf-autofillr-plugins added to PyPI",
+              "ollama-benchmarker added to PyPI",
+              "swiss-truth-haystack added to PyPI",
+              "sdlc-framework added to PyPI",
+              "codex-limit added to PyPI",
+              "chronoise added to PyPI",
+              "ros-openusd-compliance-checker added to PyPI",
+              "pdf-autofillr-cli added to PyPI",
+              "runtimekit-cli added to PyPI",
+              "beastcrypt added to PyPI",
+              "cyrapeft added to PyPI",
+              "scellrun added to PyPI",
+              "anet-sdk added to PyPI",
+              "tvb-phaseplane added to PyPI",
+              "triad-base added to PyPI"
+            ],
+            "error": null
+          },
+          {
+            "name": "PyPI Latest Updates",
+            "url": "https://pypi.org/rss/updates.xml",
+            "items": [
+              "PyPI recent updates",
+              "snyk-agent-scan 0.5.0",
+              "tom-iag 0.2.14",
+              "pygpubench 0.0.3",
+              "dasmixer 0.3.0",
+              "trustifai 0.1.8",
+              "tess-ida-tools 1.1.9",
+              "thoughtleaders-cli 0.6.7",
+              "thigh-us-segmentation 0.1.0",
+              "stardag 0.6.0",
+              "cyrapeft 0.1.4",
+              "news48 0.4.2",
+              "tsunagi-ollama-bridge 1.1.0.post3",
+              "imansur-ytb 0.3.4",
+              "aws-resource-validator-appflow 2.0.2",
+              "aws-resource-validator-appfabric 2.0.2",
+              "aws-resource-validator-appconfigdata 2.0.2",
+              "aws-resource-validator-appconfig 2.0.2",
+              "aws-resource-validator-apigatewayv2 2.0.2",
+              "aws-resource-validator-apigatewaymanagementapi 2.0.2"
+            ],
+            "error": null
+          },
+          {
+            "name": "GitHub Trending",
+            "url": "https://github.com/trending",
+            "items": [
+              "warpdotdev / warp",
+              "TauricResearch / TradingAgents",
+              "mattpocock / skills",
+              "obra / superpowers",
+              "lukilabs / craft-agents-oss",
+              "public-apis / public-apis",
+              "1jehuang / jcode",
+              "soxoj / maigret",
+              "HunxByts / GhostTrack",
+              "iamgio / quarkdown",
+              "ghostty-org / ghostty",
+              "ForrestKnight / open-source-cs",
+              "browserbase / skills"
+            ],
+            "error": null
+          },
+          {
+            "name": "GitHub Search ML",
+            "url": "https://github.com/search?q=machine+learning&type=repositories",
+            "items": [
+              "josephmisiti/awesome-machine-learning",
+              "wepe/MachineLearning",
+              "lawlite19/MachineLearning_Python",
+              "Jack-Cherish/Machine-Learning",
+              "udacity/machine-learning",
+              "Azure/MachineLearningNotebooks",
+              "trekhleb/homemade-machine-learning",
+              "lazyprogrammer/machine_learning_examples",
+              "ujjwalkarn/Machine-Learning-Tutorials",
+              "stefan-jansen/machine-learning-for-trading"
+            ],
+            "error": null
+          },
+          {
+            "name": "GitHub Explore",
+            "url": "https://github.com/explore",
+            "items": [
+              "Hack on open source with us",
+              "warpdotdev",
+              "warp",
+              "TauricResearch",
+              "TradingAgents",
+              "Fixing merge conflicts and PRs with Copilot cloud agent | GitHub Checkout",
+              "React",
+              "mattpocock",
+              "skills",
+              "obra",
+              "superpowers",
+              "lukilabs",
+              "craft-agents-oss",
+              "public-apis",
+              "public-apis",
+              "GitHub Copilot SDK Reddit Contest Winners",
+              "Datree",
+              "1jehuang",
+              "jcode",
+              "soxoj"
+            ],
+            "error": null
+          }
+        ]
+      }
+    }
+  ],
+  "scraper_statuses": {
+    "web_5s_scraper.py": "OK",
+    "web_5s_scraper_advanced.py": "OK"
+  }
+}
