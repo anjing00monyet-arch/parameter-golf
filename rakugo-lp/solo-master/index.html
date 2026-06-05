@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>独演会タイトル | Solo Master テンプレート</title>
+
+  <!-- OGP -->
+  <meta property="og:title" content="独演会タイトル">
+  <meta property="og:description" content="公演の説明をここに。">
+  <meta property="og:image" content="preview/desktop.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200;300;400;600;700&family=Noto+Sans+JP:wght@300;400;500&family=EB+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       Design Tokens — Solo Master
+       暖かみのある漆黒 × 和紙白 × 深金
+    ============================================================ */
+    :root {
+      --bg:           #0c0c0a;
+      --surface:      #161410;
+      --surface-2:    #1f1c16;
+      --border:       #2a2620;
+      --border-light: #3a3530;
+      --accent:       #c0392b;
+      --accent-hover: #e74c3c;
+      --text:         #ede8de;
+      --text-muted:   #8a8070;
+      --gold:         #c9a96e;
+      --gold-dark:    #9a7a45;
+      --gold-light:   #e8cfa0;
+      --green:        #2d8a5e;
+      --orange:       #d4631a;
+      --blue:         #2a7ab5;
+
+      --font-serif: "Noto Serif JP", "游明朝", "ヒラギノ明朝 ProN", serif;
+      --font-sans:  "Noto Sans JP", "游ゴシック", sans-serif;
+      --font-latin: "EB Garamond", Georgia, serif;
+
+      --max-w: 820px;
+      --radius: 2px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.85;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    section { padding: 88px 0; }
+
+    h2.section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      margin-bottom: 52px;
+      text-align: center;
+      position: relative;
+    }
+    h2.section-title::before,
+    h2.section-title::after {
+      content: "──";
+      display: inline-block;
+      margin: 0 1em;
+      color: var(--border-light);
+      letter-spacing: -0.3em;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ============================================================
+       Badges
+    ============================================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 1px;
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      font-family: var(--font-sans);
+    }
+    .badge::before {
+      content: "";
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+    .badge-on-sale    { color: var(--green);  border: 1px solid var(--green); }
+    .badge-pre-sale   { color: var(--text-muted); border: 1px solid var(--border-light); }
+    .badge-few-left   { color: var(--orange); border: 1px solid var(--orange); }
+    .badge-sold-out   { color: var(--text-muted); border: 1px solid var(--border); }
+    .badge-day-ticket { color: var(--blue);   border: 1px solid var(--blue); }
+    .badge-sold-out::before { animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    /* ============================================================
+       Navigation
+    ============================================================ */
+    #nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.4s, border-color 0.4s;
+      border-bottom: 1px solid transparent;
+    }
+    #nav.scrolled {
+      background: rgba(12,12,10,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom-color: var(--border);
+    }
+    .nav-logo {
+      font-family: var(--font-serif);
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      color: var(--gold);
+    }
+    .nav-cta {
+      border: 1px solid var(--gold-dark);
+      color: var(--gold);
+      padding: 7px 20px;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-cta:hover { background: rgba(201,169,110,0.12); }
+
+    /* ============================================================
+       Hero — フルブリード演者写真
+    ============================================================ */
+    #hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    /* 写真なし版: 縦グラデーション */
+    .hero-bg-fallback {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 65% 30%, rgba(201,169,110,0.06) 0%, transparent 60%),
+        linear-gradient(180deg, #0c0c0a 0%, #1a1508 50%, #0c0c0a 100%);
+    }
+
+    /* 写真あり版: <img> を .hero-photo クラスで配置 */
+    .hero-photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .hero-photo-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to right, rgba(12,12,10,0.92) 0%, rgba(12,12,10,0.6) 50%, rgba(12,12,10,0.3) 100%),
+        linear-gradient(to top, rgba(12,12,10,0.98) 0%, transparent 50%);
+    }
+
+    /* テキストコンテンツ */
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      padding: 120px 0 80px;
+    }
+
+    .hero-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 28px;
+      display: grid;
+      gap: 28px;
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .hero-eyebrow-line {
+      font-family: var(--font-latin);
+      font-style: italic;
+      font-size: clamp(0.8rem, 1.5vw, 1rem);
+      color: var(--gold);
+      letter-spacing: 0.15em;
+    }
+
+    .hero-main-title {
+      font-family: var(--font-serif);
+      font-weight: 200;
+      font-size: clamp(3rem, 10vw, 6.5rem);
+      line-height: 1.1;
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+    .hero-main-title .performer-name-hero {
+      display: block;
+      font-weight: 700;
+      color: var(--gold-light);
+      font-size: clamp(2rem, 6vw, 4rem);
+      letter-spacing: 0.2em;
+      margin-bottom: 8px;
+    }
+
+    .hero-show-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.1rem, 3vw, 1.8rem);
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      color: var(--text);
+      border-left: 2px solid var(--accent);
+      padding-left: 18px;
+    }
+
+    .hero-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+    }
+    .hero-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .meta-label {
+      font-family: var(--font-latin);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .meta-value {
+      font-family: var(--font-serif);
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+    .meta-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+    .hero-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      padding-top: 8px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+      padding: 13px 22px;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--gold-dark); color: var(--gold); }
+
+    /* ============================================================
+       演者プロフィール
+    ============================================================ */
+    #profile { background: var(--surface); }
+
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 52px;
+      align-items: start;
+    }
+    @media (max-width: 640px) {
+      .profile-layout { grid-template-columns: 1fr; gap: 32px; }
+    }
+
+    .profile-photo-wrap {
+      position: sticky;
+      top: 80px;
+    }
+    .profile-photo {
+      aspect-ratio: 3/4;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-photo-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+    .profile-photo-placeholder svg {
+      width: 52px; height: 52px;
+      fill: none;
+      stroke: var(--border-light);
+      stroke-width: 1;
+    }
+    .profile-photo-caption {
+      margin-top: 12px;
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    .profile-text { display: flex; flex-direction: column; gap: 24px; }
+    .profile-name {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--gold-light);
+      line-height: 1.2;
+    }
+    .profile-name-reading {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      letter-spacing: 0.2em;
+      margin-top: 4px;
+      font-family: var(--font-sans);
+    }
+    .profile-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .profile-rank {
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      background: rgba(201,169,110,0.12);
+      color: var(--gold);
+      border: 1px solid rgba(201,169,110,0.3);
+      letter-spacing: 0.1em;
+    }
+    .profile-school {
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      letter-spacing: 0.1em;
+    }
+
+    .profile-bio {
+      font-size: 0.93rem;
+      line-height: 2;
+      color: var(--text);
+    }
+    .profile-bio p + p { margin-top: 1em; }
+
+    .profile-awards {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .profile-awards-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--gold-dark);
+      font-family: var(--font-latin);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .profile-award-item {
+      display: flex;
+      gap: 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .award-year {
+      font-family: var(--font-latin);
+      color: var(--gold-dark);
+      white-space: nowrap;
+      font-size: 0.78rem;
+      padding-top: 2px;
+    }
+
+    /* ============================================================
+       演目
+    ============================================================ */
+    .setlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 2px;
+    }
+
+    .setlist-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: background 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .setlist-item:hover {
+      background: var(--surface-2);
+      border-color: var(--border-light);
+    }
+    .setlist-item.tba {
+      opacity: 0.55;
+    }
+
+    .setlist-num {
+      font-family: var(--font-latin);
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--gold-dark);
+      text-transform: uppercase;
+    }
+    .setlist-title {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+    }
+    .setlist-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+    .setlist-new {
+      position: absolute;
+      top: 14px; right: 14px;
+      font-size: 0.62rem;
+      padding: 2px 8px;
+      background: rgba(192,57,43,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(192,57,43,0.3);
+      letter-spacing: 0.1em;
+    }
+
+    .setlist-note {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================================
+       木戸銭
+    ============================================================ */
+    #tickets { background: var(--surface); }
+
+    .ticket-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 2px;
+      margin-bottom: 24px;
+    }
+    .ticket-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.2s;
+    }
+    .ticket-card:hover { border-color: var(--border-light); }
+    .ticket-card.featured {
+      background: var(--surface-2);
+      border-color: var(--gold-dark);
+    }
+    .ticket-card-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      font-family: var(--font-latin);
+      text-transform: uppercase;
+    }
+    .ticket-card-price {
+      font-family: var(--font-serif);
+      font-size: 1.7rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+    .ticket-card-price span {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .ticket-card-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    .ticket-notes {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 2;
+    }
+    .ticket-notes li { margin-left: 1.2em; }
+
+    .ticket-services {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btn-service {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+      transition: opacity 0.2s, transform 0.15s;
+      border: 1px solid;
+    }
+    .btn-service:hover { opacity: 0.82; transform: translateY(-1px); }
+    .btn-peatix     { background: #e82b70; border-color: #e82b70; color: #fff; }
+    .btn-tiget      { background: #00b4a2; border-color: #00b4a2; color: #fff; }
+    .btn-passmarket { background: #1b7fc4; border-color: #1b7fc4; color: #fff; }
+    .btn-form       { background: transparent; border-color: var(--border-light); color: var(--text-muted); }
+    .btn-form:hover { border-color: var(--gold-dark); color: var(--gold); opacity: 1; }
+
+    /* ============================================================
+       アクセス
+    ============================================================ */
+    .access-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    @media (max-width: 640px) { .access-wrap { grid-template-columns: 1fr; } }
+
+    .map-frame {
+      aspect-ratio: 4/3;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      position: relative;
+    }
+    .map-frame iframe { width: 100%; height: 100%; border: none; display: block; }
+    .map-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      padding: 24px;
+    }
+    .map-placeholder svg {
+      width: 32px; height: 32px;
+      fill: none;
+      stroke: var(--border-light);
+      stroke-width: 1.2;
+    }
+
+    .access-info { display: flex; flex-direction: column; gap: 22px; }
+    .access-block { display: flex; flex-direction: column; gap: 4px; }
+    .access-lbl {
+      font-family: var(--font-latin);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      color: var(--gold-dark);
+      text-transform: uppercase;
+    }
+    .access-val {
+      font-family: var(--font-serif);
+      font-size: 0.98rem;
+      line-height: 1.65;
+    }
+    .access-val-note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.75; margin-top: 2px; }
+
+    /* ============================================================
+       FAQ
+    ============================================================ */
+    #faq { background: var(--surface); }
+
+    .faq-list { display: flex; flex-direction: column; gap: 1px; }
+    .faq-item {
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .faq-q {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 0.93rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+    .faq-q:hover, .faq-q[aria-expanded="true"] { background: var(--surface-2); }
+    .faq-icon {
+      flex-shrink: 0;
+      width: 18px; height: 18px;
+      position: relative;
+      color: var(--gold-dark);
+    }
+    .faq-icon::before, .faq-icon::after {
+      content: "";
+      position: absolute;
+      background: currentColor;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+    .faq-icon::before { width: 10px; height: 1px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .faq-icon::after  { width: 1px; height: 10px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .faq-q[aria-expanded="true"] .faq-icon::after { opacity: 0; transform: translate(-50%, -50%) rotate(90deg); }
+    .faq-a {
+      display: none;
+      padding: 0 24px 18px;
+      font-size: 0.87rem;
+      color: var(--text-muted);
+      line-height: 1.95;
+    }
+    .faq-a.open { display: block; }
+
+    /* ============================================================
+       Footer
+    ============================================================ */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 52px 0 120px;
+    }
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: flex-start;
+    }
+    .footer-org { font-family: var(--font-serif); font-size: 0.95rem; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 6px; }
+    .footer-contact { font-size: 0.8rem; color: var(--text-muted); line-height: 1.9; }
+    .footer-links { display: flex; flex-direction: column; gap: 8px; text-align: right; }
+    .footer-link { font-size: 0.8rem; color: var(--text-muted); transition: color 0.2s; }
+    .footer-link:hover { color: var(--gold); }
+    .footer-copy {
+      width: 100%;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      letter-spacing: 0.1em;
+    }
+
+    /* ============================================================
+       スマホ固定CTAバー
+    ============================================================ */
+    #sticky-cta {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 99;
+      background: rgba(12,12,10,0.96);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transform: translateY(100%);
+      transition: transform 0.35s ease;
+    }
+    #sticky-cta.visible { transform: translateY(0); }
+    .sticky-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .sticky-name { font-family: var(--font-serif); font-size: 0.88rem; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sticky-date { font-size: 0.75rem; color: var(--text-muted); }
+    .sticky-btn {
+      flex-shrink: 0;
+      background: var(--accent);
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    .sticky-btn:hover { background: var(--accent-hover); }
+    @media (min-width: 769px) { #sticky-cta { display: none; } }
+
+    /* ============================================================
+       Animations
+    ============================================================ */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .fade-up:nth-child(2) { transition-delay: 0.1s; }
+    .fade-up:nth-child(3) { transition-delay: 0.2s; }
+    .fade-up:nth-child(4) { transition-delay: 0.3s; }
+
+    /* ============================================================
+       Print
+    ============================================================ */
+    @media print {
+      #nav, #sticky-cta, .hero-cta-row, .ticket-services { display: none; }
+      body { background: #fff; color: #000; }
+      section { padding: 28px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+  EDIT HERE — ここだけ編集すれば公開できます
+  ============================================================ -->
+<script>
+const EVENT = {
+  // 演者情報
+  performer_name:       "○○ ○○",
+  performer_reading:    "まるまる まるまる",
+  performer_rank:       "真打",     // "真打" / "二つ目" など
+  performer_school:     "○○ ○○ 門下",
+
+  // 公演情報
+  show_title:     "○○独演会",
+  show_subtitle:  "〜 サブタイトル・キャッチコピー 〜",
+  edition:        "第○回",        // "第○回" or ""
+  date:           "2026年○月○日（○）",
+  open_time:      "開場 18:00",
+  start_time:     "開演 18:30",
+  end_time:       "終演予定 20:30",
+  venue:          "○○ホール",
+  address:        "東京都○○区○○1-2-3",
+  venue_access:   "○○線 ○○駅 徒歩5分",
+
+  // ステータス: on_sale / pre_sale / few_left / sold_out / day_ticket
+  status: "on_sale",
+
+  // 予約URL（使わないサービスは "" に）
+  ticket_url:      "https://peatix.com/",
+  peatix_url:      "https://peatix.com/",
+  tiget_url:       "",
+  passmarket_url:  "",
+  form_url:        "",
+
+  // 地図 (Google Maps 埋め込みsrc、不要なら "")
+  map_src: "",
+
+  // 主催者
+  organizer: "○○独演会 実行委員会",
+  contact:   "info@example.com",
+};
+</script>
+
+<!-- ============================================================
+  以下は通常編集不要 — 番組・プロフィール・料金・FAQのみ編集
+  ============================================================ -->
+
+<!-- Navigation -->
+<nav id="nav">
+  <span class="nav-logo" id="nav-title"></span>
+  <a href="#" class="nav-cta" id="nav-cta-link">予約する</a>
+</nav>
+
+<!-- ============================================================
+  Hero
+  写真を使う場合: .hero-bg-fallback を削除し、下の <img> コメントを外す
+  ============================================================ -->
+<section id="hero">
+  <div class="hero-bg-fallback" id="hero-bg"></div>
+
+  <!-- 写真あり版: ↓コメントを外し、performer.jpg を同じフォルダに置いてください -->
+  <!-- <img src="performer.jpg" class="hero-photo" alt="演者写真">
+  <div class="hero-photo-overlay"></div> -->
+
+  <div class="hero-content">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-line" id="hero-edition"></span>
+        <span id="hero-badge"></span>
+      </div>
+      <div>
+        <h1 class="hero-main-title">
+          <span class="performer-name-hero" id="hero-performer"></span>
+          <span id="hero-show-label"></span>
+        </h1>
+        <p class="hero-show-title" id="hero-subtitle"></p>
+      </div>
+      <div class="hero-meta-row">
+        <div class="hero-meta-item">
+          <span class="meta-label">Date</span>
+          <span class="meta-value" id="meta-date"></span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="meta-label">Time</span>
+          <span class="meta-value" id="meta-time"></span>
+          <span class="meta-sub" id="meta-end"></span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="meta-label">Venue</span>
+          <span class="meta-value" id="meta-venue"></span>
+        </div>
+      </div>
+      <div class="hero-cta-row">
+        <a href="#" class="btn-primary" id="hero-cta">予約する</a>
+        <a href="#profile" class="btn-ghost">演者紹介</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============================================================
+  演者プロフィール  EDIT: 略歴・受賞歴を書き換えてください
+  ============================================================ -->
+<section id="profile">
+  <div class="container">
+    <h2 class="section-title">演　者</h2>
+    <div class="profile-layout fade-up">
+
+      <div class="profile-photo-wrap">
+        <div class="profile-photo">
+          <!-- 写真あり版: ↓コメントを外して profile.jpg を用意してください -->
+          <!-- <img src="profile.jpg" alt="演者写真"> -->
+          <div class="performer-photo-placeholder profile-photo-placeholder">
+            <svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="9"/><path d="M6 42c0-9.94 8.06-18 18-18s18 8.06 18 18"/></svg>
+            <span>写真</span>
+          </div>
+        </div>
+        <p class="profile-photo-caption" id="profile-photo-caption"></p>
+      </div>
+
+      <div class="profile-text">
+        <div>
+          <p class="profile-name" id="profile-name"></p>
+          <p class="profile-name-reading" id="profile-reading"></p>
+          <div class="profile-title-row">
+            <span class="profile-rank" id="profile-rank"></span>
+            <span class="profile-school" id="profile-school"></span>
+          </div>
+        </div>
+
+        <!-- EDIT: 略歴本文 -->
+        <div class="profile-bio">
+          <p>○○年、○○都生まれ。○○年に○○師匠に入門し、○○年に二つ目昇進。○○年に真打昇進。古典落語に精通しながら、現代的な感覚で新しい解釈を加えた高座が評判を呼ぶ。</p>
+          <p>得意演目は「○○」「○○」「○○」。○○年からは独演会シリーズを定期開催し、一席ごとに演者と客席が作り上げる空気を大切にした会として広く親しまれている。</p>
+        </div>
+
+        <!-- EDIT: 受賞歴（不要なら <div class="profile-awards">〜</div> ごと削除） -->
+        <div class="profile-awards">
+          <p class="profile-awards-label">Awards &amp; History</p>
+          <div class="profile-award-item">
+            <span class="award-year">○○年</span>
+            <span>○○賞 受賞</span>
+          </div>
+          <div class="profile-award-item">
+            <span class="award-year">○○年</span>
+            <span>真打昇進</span>
+          </div>
+          <div class="profile-award-item">
+            <span class="award-year">○○年</span>
+            <span>○○独演会 シリーズ開始</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============================================================
+  演目  EDIT: 演目名・説明を書き換えてください
+  当日まで未定の場合は class="setlist-item tba" にするとグレーアウトします
+  ============================================================ -->
+<section id="setlist">
+  <div class="container">
+    <h2 class="section-title">演　目</h2>
+    <div class="setlist-grid fade-up">
+
+      <div class="setlist-item">
+        <span class="setlist-num">Opening</span>
+        <p class="setlist-title">『 ○○ 』</p>
+        <p class="setlist-subtitle">演目の短い説明・聴きどころをひと言</p>
+      </div>
+
+      <div class="setlist-item">
+        <span class="setlist-num">Second</span>
+        <p class="setlist-title">『 ○○ 』</p>
+        <p class="setlist-subtitle">演目の短い説明</p>
+        <span class="setlist-new">初演</span>
+      </div>
+
+      <div class="setlist-item">
+        <span class="setlist-num">Intermission</span>
+        <p class="setlist-title" style="color:var(--text-muted); font-weight:300;">仲入り（休憩 15分）</p>
+        <p class="setlist-subtitle"></p>
+      </div>
+
+      <div class="setlist-item">
+        <span class="setlist-num">Closing</span>
+        <p class="setlist-title">『 ○○ 』</p>
+        <p class="setlist-subtitle">本日の大トリ</p>
+      </div>
+
+    </div>
+    <p class="setlist-note">※ 演目は変更になる場合があります。</p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============================================================
+  木戸銭  EDIT: 料金・注意書きを書き換えてください
+  ============================================================ -->
+<section id="tickets">
+  <div class="container">
+    <h2 class="section-title">木 戸 銭</h2>
+    <div class="fade-up">
+      <div class="ticket-cards">
+        <div class="ticket-card featured">
+          <span class="ticket-card-label">前売</span>
+          <p class="ticket-card-price">¥3,000<span>（税込）</span></p>
+          <p class="ticket-card-note">公演前日まで</p>
+        </div>
+        <div class="ticket-card">
+          <span class="ticket-card-label">当日</span>
+          <p class="ticket-card-price">¥3,500<span>（税込）</span></p>
+          <p class="ticket-card-note">当日受付にて</p>
+        </div>
+        <div class="ticket-card">
+          <span class="ticket-card-label">学生</span>
+          <p class="ticket-card-price">¥1,500<span>（税込）</span></p>
+          <p class="ticket-card-note">要学生証提示</p>
+        </div>
+      </div>
+      <ul class="ticket-notes">
+        <li>全席自由席です。</li>
+        <li>未就学児はひざ上鑑賞に限り無料（座席要の場合は学生料金）。</li>
+        <li>チケットの払い戻しは公演3日前まで受け付けます。</li>
+      </ul>
+      <div class="ticket-services" id="ticket-services"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============================================================
+  アクセス
+  ============================================================ -->
+<section id="access">
+  <div class="container">
+    <h2 class="section-title">会場・アクセス</h2>
+    <div class="access-wrap fade-up">
+      <div class="map-frame">
+        <div class="map-placeholder" id="map-placeholder">
+          <svg viewBox="0 0 36 36"><path d="M18 2C11.37 2 6 7.37 6 14c0 8.25 12 22 12 22s12-13.75 12-22c0-6.63-5.37-12-12-12zm0 16a4 4 0 110-8 4 4 0 010 8z"/></svg>
+          <span>地図を表示するには<br>Google Maps の埋め込みURLを設定してください</span>
+        </div>
+      </div>
+      <div class="access-info">
+        <div class="access-block">
+          <span class="access-lbl">Venue</span>
+          <p class="access-val" id="acc-venue"></p>
+        </div>
+        <div class="access-block">
+          <span class="access-lbl">Address</span>
+          <p class="access-val" id="acc-address"></p>
+        </div>
+        <div class="access-block">
+          <span class="access-lbl">Access</span>
+          <p class="access-val" id="acc-transport"></p>
+        </div>
+        <!-- EDIT: 追加アクセス情報 -->
+        <div class="access-block">
+          <span class="access-lbl">Notes</span>
+          <p class="access-val-note">駐車場はございません。公共交通機関をご利用ください。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <h2 class="section-title">よくある質問</h2>
+    <!-- EDIT: Q&A を自由に増減・編集 -->
+    <div class="faq-list fade-up">
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          開場・開演時間はいつですか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">開場は開演の30分前です。独演会のため席はご自由にお選びください。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          途中入場・途中退場はできますか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">高座の途中は入退場をご遠慮ください。仲入り（休憩）のタイミングでお入りください。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          落語を初めて観るのですが大丈夫ですか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">もちろんです。独演会は演者との距離が近く、予備知識なしでも十二分に楽しめます。笑いあり、人情あり、噺の世界をぜひ生で体験してください。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          写真・動画撮影はできますか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">公演中の撮影・録音はご遠慮ください。開演前・終演後のロビーでの撮影は自由です。SNS投稿歓迎します。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          キャンセル・払い戻しはできますか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">公演3日前までお承りします。各予約サービスのキャンセル手続きに従ってください。</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          当日券はありますか？
+          <span class="faq-icon" aria-hidden="true"></span>
+        </button>
+        <div class="faq-a">前売りが完売した場合は当日券の販売はございません。残席がある場合のみ開場時に受付で販売します（当日料金）。</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <p class="footer-org" id="footer-org"></p>
+      <p class="footer-contact" id="footer-contact"></p>
+    </div>
+    <div class="footer-links">
+      <a href="#" class="footer-link">プライバシーポリシー</a>
+      <a href="#" class="footer-link">過去の公演</a>
+      <a href="#faq" class="footer-link">よくある質問</a>
+    </div>
+    <p class="footer-copy" id="footer-copy"></p>
+  </div>
+</footer>
+
+<!-- Sticky CTA (mobile) -->
+<div id="sticky-cta">
+  <div class="sticky-info">
+    <span class="sticky-name" id="sticky-name"></span>
+    <span class="sticky-date" id="sticky-date"></span>
+  </div>
+  <a href="#" class="sticky-btn" id="sticky-btn">予約する →</a>
+</div>
+
+<script>
+(function() {
+  const statusMap = {
+    on_sale:    { label: "予約受付中",  cls: "badge-on-sale" },
+    pre_sale:   { label: "発売前",      cls: "badge-pre-sale" },
+    few_left:   { label: "残席わずか",  cls: "badge-few-left" },
+    sold_out:   { label: "満席",        cls: "badge-sold-out" },
+    day_ticket: { label: "当日券あり",  cls: "badge-day-ticket" },
+  };
+
+  function setText(id, v) { const e = document.getElementById(id); if (e && v) e.textContent = v; }
+  function setLink(id, u) { const e = document.getElementById(id); if (e && u) e.href = u; }
+
+  // Nav
+  setText("nav-title", `${EVENT.edition ? EVENT.edition + " " : ""}${EVENT.show_title}`);
+  setLink("nav-cta-link", EVENT.ticket_url);
+
+  // Hero
+  setText("hero-edition",   EVENT.edition);
+  setText("hero-performer", EVENT.performer_name);
+  setText("hero-show-label", EVENT.show_title);
+  setText("hero-subtitle",  EVENT.show_subtitle);
+  setText("meta-date",   EVENT.date);
+  setText("meta-time",   `${EVENT.open_time} ／ ${EVENT.start_time}`);
+  setText("meta-end",    EVENT.end_time);
+  setText("meta-venue",  EVENT.venue);
+  setLink("hero-cta",    EVENT.ticket_url);
+
+  const st = statusMap[EVENT.status] || statusMap.on_sale;
+  document.getElementById("hero-badge").innerHTML = `<span class="badge ${st.cls}">${st.label}</span>`;
+  if (EVENT.status === "sold_out") {
+    const cta = document.getElementById("hero-cta");
+    cta.style.opacity = "0.4";
+    cta.style.pointerEvents = "none";
+  }
+
+  // Profile
+  setText("profile-name",    EVENT.performer_name);
+  setText("profile-reading", EVENT.performer_reading);
+  setText("profile-rank",    EVENT.performer_rank);
+  setText("profile-school",  EVENT.performer_school);
+  setText("profile-photo-caption", EVENT.performer_name);
+
+  // Access
+  setText("acc-venue",     EVENT.venue);
+  setText("acc-address",   EVENT.address);
+  setText("acc-transport", EVENT.venue_access);
+  if (EVENT.map_src) {
+    document.querySelector(".map-frame").innerHTML =
+      `<iframe src="${EVENT.map_src}" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="会場地図"></iframe>`;
+  }
+
+  // Ticket services
+  const svcs = [];
+  if (EVENT.peatix_url)     svcs.push({ cls:"btn-peatix",     label:"Peatix で予約",     url:EVENT.peatix_url });
+  if (EVENT.tiget_url)      svcs.push({ cls:"btn-tiget",      label:"TIGET で予約",      url:EVENT.tiget_url });
+  if (EVENT.passmarket_url) svcs.push({ cls:"btn-passmarket", label:"PassMarket で予約", url:EVENT.passmarket_url });
+  if (EVENT.form_url)       svcs.push({ cls:"btn-form",       label:"メールフォームで予約", url:EVENT.form_url });
+  if (!svcs.length && EVENT.ticket_url) svcs.push({ cls:"btn-peatix", label:"予約する", url:EVENT.ticket_url });
+  document.getElementById("ticket-services").innerHTML =
+    svcs.map(s => `<a href="${s.url}" class="btn-service ${s.cls}" target="_blank" rel="noopener">${s.label}</a>`).join("");
+
+  // Footer
+  setText("footer-org",     EVENT.organizer);
+  setText("footer-contact", EVENT.contact);
+  setText("footer-copy",    `© ${new Date().getFullYear()} ${EVENT.organizer}`);
+
+  // Sticky
+  setText("sticky-name", EVENT.performer_name + "  " + EVENT.show_title);
+  setText("sticky-date", EVENT.date);
+  setLink("sticky-btn",  EVENT.ticket_url);
+
+  /* Scroll */
+  const nav = document.getElementById("nav");
+  const sticky = document.getElementById("sticky-cta");
+  const hero = document.getElementById("hero");
+
+  new IntersectionObserver(entries => {
+    sticky.classList.toggle("visible", !entries[0].isIntersecting);
+  }, { threshold: 0.1 }).observe(hero);
+
+  window.addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 60), { passive: true });
+
+  /* Fade-up */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+  document.querySelectorAll(".fade-up").forEach(el => io.observe(el));
+
+  /* FAQ */
+  document.querySelectorAll(".faq-q").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const open = btn.getAttribute("aria-expanded") === "true";
+      btn.setAttribute("aria-expanded", !open);
+      btn.nextElementSibling.classList.toggle("open", !open);
+    });
+  });
+})();
+</script>
+</body>
+</html>
