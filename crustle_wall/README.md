@@ -74,3 +74,29 @@ python3 -m crustle_wall.test_control
 
 Cases reproduce the two real loss patterns (double-Lucario false-safe, thin
 mill race) plus the retreat/wall/swing branches.
+
+## Backtest over replays_15
+
+```
+python3 -m crustle_wall.backtest '<path>/replays_15/*.json'
+```
+
+Honest scope: this does not re-simulate games (no pilot in this repo), so it
+reports *decision-point coverage*, not a win count.
+
+- **C (Tusk exposure):** 37 Great Tusks were KO'd in the active spot across the
+  19 games; **27** had a Crustle already benched, i.e. a retreat/wall was
+  available and `decide_tusk_action` would have fired. (It fires in wins too —
+  preserving the mill engine and denying prizes is good regardless — so 27 is
+  the touch ceiling, not a claim that all should be prevented; the mill-race
+  override intentionally still swings when skipping would deck us out.)
+- **A (mill race):** 4 of the 12 losses were self-deck-out, lost by **1, 2, 4,
+  and 8** cards. Three of four are within a couple of gated optional draws.
+- **Coverage:** **9 of 12 losses** are touched by A and/or B+C. The remaining 3
+  (Kazuhiro Sato, kokenbo, Jai Japan) are short games where we lost with all 6
+  prizes still up — the wall never came online. That is a **setup-speed**
+  problem, out of scope for these guards and the next thing to investigate.
+
+Validate the next live batch on *loss composition* (prize-race / self-deck-out /
+never-set-up), not win rate: at n≈19 the win-rate CI is ±22%, but the loss mix
+shifts measurably.
