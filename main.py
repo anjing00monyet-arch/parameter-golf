@@ -738,9 +738,9 @@ def apply_overrides(obs, opt, score, reason):
 # v6 candidate patches: B1 (2-step lethal) / A2 (prize race) / A3 (draw stop)
 # 1提出=1フラグ。まず B1 → 次 A3 → 最後 A2 の順で個別測定推奨。
 # ================================================================
-ENABLE_B1_TWO_STEP_LETHAL = False   # リトリート→ベンチアタッカーで致死の2手経路を最優先化
-ENABLE_A2_PRIZE_RACE      = False   # 相手サイドリーチ時は生存(Ice Cream/Cape)を優先
-ENABLE_A3_DRAW_STOP       = False   # 勝ち確 or 山薄+攻撃可能なら任意ドローを止めて山切れ自滅を防ぐ
+ENABLE_B1_TWO_STEP_LETHAL = True    # リトリート→ベンチアタッカーで致死の2手経路を最優先化
+ENABLE_A2_PRIZE_RACE      = True    # 相手サイドリーチ時は生存(Ice Cream/Cape)を優先
+ENABLE_A3_DRAW_STOP       = True    # 勝ち確 or 山薄+攻撃可能なら任意ドローを止めて山切れ自滅を防ぐ
 
 SCORE_TWO_STEP_LETHAL = 50000       # setup帯(<=32000)より上、FORCED(100000)より下
 
