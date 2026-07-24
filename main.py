@@ -740,9 +740,49 @@ def apply_overrides(obs, opt, score, reason):
 # ================================================================
 ENABLE_B1_TWO_STEP_LETHAL = False   # リトリート→ベンチアタッカーで致死の2手経路を最優先化
 ENABLE_A2_PRIZE_RACE      = False   # 相手サイドリーチ時は生存(Ice Cream/Cape)を優先
-ENABLE_A3_DRAW_STOP       = True    # 勝ち確 or 山薄+攻撃可能なら任意ドローを止めて山切れ自滅を防ぐ
+ENABLE_A3_DRAW_STOP       = False   # 勝ち確 or 山薄+攻撃可能なら任意ドローを止めて山切れ自滅を防ぐ
+
+# ================================================================
+# v8 mechanism-regression fixes
+#
+# 1000戦A/Bで v7(B1+A2+A3全部ON) が REJECT_CANDIDATE_MECHANISM_REGRESSION
+# 判定になった。却下理由は勝率ではなく c0_2_true_self_snipes の絶対率超過
+# (1.35% > ceiling 1.0%)。2回の独立試行で v6 が 0.8-1.2%、v7 が 1.35-1.4% と
+# 常に上振れしており、単発のp値は非有意でも方向は一貫している。
+#
+# ハーネス側の true_self_snipe 判定は harness/metrics.py より:
+#     強制昇格(Activeが倒されて空になった) かつ
+#     昇格させたのが Duraludon / Archaludon ex かつ
+#     見えているエネルギーが3枚未満 かつ 今すぐ進化もできない かつ
+#     選択肢の中に Duraludon系以外(=捨て駒にできる体)が在った
+# つまり「捨て駒が居るのに、未完成の勝ち筋カードを前に出した」場合だけ数える。
+#
+# 現行 score_target の強制昇格分岐には、この定義に対して2つの穴がある:
+#   * Archaludon ex には強制昇格ガードが無く、未完成でも 15000。
+#     Relicanth の汎用昇格 1000 に勝つのでそのまま該当してしまう。
+#   * Duraludon の降格(500)は opp_max_damage >= hp の時だけ。相手の打点が
+#     足りない盤面では 8000 のままで、やはり Relicanth に勝つ。
+# どちらも v6 から在る素のバグで、B1 は「交換 = 強制昇格の機会」を増やす
+# ため、同じ per-event バグが v7 側でだけ表面化したと考えられる。
+# D1 はこの判定定義をそのままポリシー側にミラーしたガード。
+# ================================================================
+ENABLE_D1_FORCED_PROMOTION_GUARD = False  # 強制昇格で未完成の勝ち筋カードを前に出さない
+ENABLE_B1_SAFE_RETREAT_GUARD     = False  # 割に合わない2手lethalの交換を見送る
+ENABLE_A3_BENCH_AWARE            = False  # ベンチが薄い間はポケモンサーチを止めない
+
+# ── C1/C2/C3 デッキ実験用 ──
+# C1: Switch / Prime Catcher で「前が縛られて主力が出せない」を構造的に解決。
+#     カードIDは環境のカードDBに依存するのでハードコードしない。ハーネスが
+#     実IDを解決してここへ書き込む。None のままなら完全な no-op。
+# C2: エネルギー枚数(10/11/12)はデッキ側だけの変更でポリシー変更を伴わない。
+# C3: ミル対面の Judge は「両者の手札を山に戻して4枚引く」=自分の山が
+#     (手札 - 4)枚 増える。山切れ負けに直接効くが相手の手札も直るので両刃。
+SWITCH_CARD_ID = None
+ENABLE_C1_SWITCH     = False
+ENABLE_C3_MILL_JUDGE = False
 
 SCORE_TWO_STEP_LETHAL = 50000       # setup帯(<=32000)より上、FORCED(100000)より下
+SCORE_KEEP_WIN_CONDITION = 400      # D1: 汎用昇格(1000)より下、SCORE_SKIP(-500)より上
 
 # ── サイドレース状態 ──
 def my_prizes_left(obs):
@@ -786,8 +826,18 @@ def win_secured_this_turn(obs):
 _OPTIONAL_DRAW_CARDS = {POKE_PAD, POKEGEAR, DUSK_BALL, ULTRA_BALL, LILLIE, EXPLORER}
 
 
+# Ultra Ball / Dusk Ball は「山を掘る」だけでなく「ベンチに置く体を探す」札でもある。
+# A3 がこれを止めると、強制昇格の時に捨て駒が居ない状態を自分で作ってしまい、
+# 勝ち筋カードを前に出さざるを得なくなる（= true_self_snipe の自作自演）。
+_POKEMON_SEARCH_CARDS = {ULTRA_BALL, DUSK_BALL}
+
+
 def _draw_stop_guard(obs, cid):
     if not ENABLE_A3_DRAW_STOP or cid not in _OPTIONAL_DRAW_CARDS:
+        return False, ""
+    # (0) A3-bench: ベンチが薄いうちはポケモンサーチだけは止めない
+    if (ENABLE_A3_BENCH_AWARE and cid in _POKEMON_SEARCH_CARDS
+            and len([p for p in my_state(obs).bench if p]) < 2):
         return False, ""
     # (1) このターン勝ち確なら任意ドローは全て不要（引いて山切れ即負けの事故を消す）
     if win_secured_this_turn(obs):
@@ -819,6 +869,91 @@ def _generic_prize_override(obs, opt, score, reason):
         if has_capeable:
             return max(score, 15000), "A2: Cape survival (opp at prize reach)"
     return score, reason
+
+
+# ── D1: 強制昇格ガード（harness の true_self_snipe 定義をミラー）──
+_WIN_CONDITION_IDS = {DURALUDON, ARCHALUDON_EX}
+
+
+def _is_forced_promotion(obs):
+    """Active が空 = 前のポケモンが倒されての強制昇格。"""
+    return not any(p for p in (my_state(obs).active or []) if p)
+
+
+def _has_expendable_promotion_option(obs, card):
+    """今の選択肢に、勝ち筋カード以外の自分のポケモン（捨て駒）が居るか。"""
+    yi = obs.current.yourIndex
+    serial = getattr(card, "serial", None)
+    for candidate in obs.select.option:
+        if getattr(candidate, "playerIndex", yi) not in (None, yi):
+            continue
+        other = option_card(obs, candidate)
+        if other is None or getattr(other, "serial", None) == serial:
+            continue
+        if other.id not in _WIN_CONDITION_IDS:
+            return True
+    return False
+
+
+def _forced_promotion_guard(obs, card, cid):
+    """強制昇格で未完成の勝ち筋カードを前に出そうとしていたら降格させる。
+
+    ready 判定はハーネスと同じ「見えているエネルギー3枚」で行う。
+    attack_energy_route() は手貼り前提なのでエネルギー2枚でも ready を返すが、
+    ゲート側は energy_count >= 3 しか見ないため、そちらを使うと集計とズレて
+    「ready のつもりで出したのに snipe として数えられる」状態が残る。
+    """
+    if not ENABLE_D1_FORCED_PROMOTION_GUARD:
+        return None
+    if cid not in _WIN_CONDITION_IDS:
+        return None
+    if not _is_forced_promotion(obs):
+        return None
+    if energy_count(card) >= 3:
+        return None
+    if can_evolve_to_archaludon_now(card, obs):
+        return None
+    if not _has_expendable_promotion_option(obs, card):
+        return None
+    return (SCORE_KEEP_WIN_CONDITION,
+            "D1: keep the win condition off the front (expendable body available)")
+
+
+def _b1_trade_is_worth_it(obs, route):
+    """B1 の2手lethalが割に合うか。
+
+    ゲームを決めない1体分のKOのために、素のアタッカーを相手の最大打点の前に
+    置きにいくと、次のターンに倒されて強制昇格が増える。true_self_snipe は
+    その強制昇格の中で起きるので、レースで負けている間はこの交換を見送る。
+    """
+    if not ENABLE_B1_SAFE_RETREAT_GUARD:
+        return True
+    attacker = route.get("attacker") if isinstance(route, dict) else None
+    if attacker is None or attacker.id not in _WIN_CONDITION_IDS:
+        return True
+    if has_tool(attacker):
+        return True  # Hero's Cape 込み(HP400)なら耐える前提
+    if opp_max_damage(obs) < attacker.hp:
+        return True
+    # 自分の残りサイドの方が多い = レースで負けている
+    return my_prizes_left(obs) <= opp_prizes_left(obs)
+
+
+# ── C1: Switch / Prime Catcher（前が縛られて主力が出せない問題）──
+def bench_attacker_blocked(obs):
+    """リトリートできないのに、ベンチに攻撃可能な主力が居る状態か。"""
+    active = active_pokemon(obs)
+    if active is None:
+        return False
+    if active.id in _WIN_CONDITION_IDS and attack_energy_route(obs, active)[0]:
+        return False  # 今の Active がそのまま殴れるなら困っていない
+    if not obs.current.retreated and energy_count(active) >= retreat_cost(active):
+        return False  # 普通にリトリートできるなら Switch を切る必要はない
+    for pokemon in (my_state(obs).bench or []):
+        if (pokemon and pokemon.id in _WIN_CONDITION_IDS
+                and attack_energy_route(obs, pokemon)[0]):
+            return True
+    return False
 
 
 # ── Scoring ──
@@ -902,6 +1037,12 @@ def score_play(obs, opt):
     if _stop:
         return SCORE_HARD_SKIP, _why
 
+    # ── C1: Switch / Prime Catcher（前が縛られている時だけ切る）──
+    if ENABLE_C1_SWITCH and SWITCH_CARD_ID is not None and cid == SWITCH_CARD_ID:
+        if bench_attacker_blocked(obs):
+            return 17000, "C1: Switch to unblock a ready bench attacker"
+        return -500, "C1: save Switch (not blocked)"
+
     # ── Pokemon: bench if available ──
     if cid in {DURALUDON, RELICANTH}:
         return SCORE_PLAY_POKEMON, "play Pokemon"
@@ -977,6 +1118,14 @@ def score_play(obs, opt):
         # through 162 big-hand moments across 6 losses — never fire it as a
         # generic play, always fire it once their hand-loop is online.
         opp_hand = getattr(opp_state(obs), "handCount", 0) or 0
+        # C3: ミル対面では Judge は「手札を山に戻して4枚引く」= 自分の山札が
+        # (手札 - 4)枚 増える札として使える。山切れ負けに直接効くが、相手の
+        # 事故った手札も直してしまうので、山が実際に薄い時だけに限定する。
+        if ENABLE_C3_MILL_JUDGE and detect_matchup(obs) == "crustle":
+            dc = my_state(obs).deckCount or 0
+            my_hand = my_state(obs).handCount or 0
+            if dc <= 8 and my_hand - 4 >= 3:
+                return 15000, f"C3: Judge refills deck (+{my_hand - 4}) vs mill"
         if detect_matchup(obs) == "alakazam":
             launcher_up = any(
                 p and p.id == 743
@@ -1197,6 +1346,8 @@ def score_retreat(obs, opt):
                     effective_damage(a["damage"], opp_act) >= opp_act.hp for a in attacks):
                 if prize_value(opp_act) >= my_prizes_left(obs):
                     return SCORE_FORCED, "B1: retreat enables WINNING KO"
+                if not _b1_trade_is_worth_it(obs, route):
+                    return 13000, "B1 guard: decline 2-step lethal (bad trade while behind)"
                 return SCORE_TWO_STEP_LETHAL, "B1: retreat enables lethal KO on active"
         return 13000, "retreat to attack-ready ex"
     return -100, "avoid retreat"
@@ -1443,6 +1594,13 @@ def score_target(obs, opt):
             if killable:
                 return 20000 + pv * 3000 + te * 100, "Boss: KO"
             return 5000 + pv * 1000 + te * 200, "Boss: drag"
+        # D1: 強制昇格で未完成の勝ち筋カードを前に出すのを、Archaludon ex /
+        # Duraludon の両方について止める。下の各分岐より先に効かせる必要がある
+        # ―― Archaludon ex 側には元々このガードが無く、Duraludon 側のガードは
+        # opp_max_damage 依存で相手の打点が低い盤面をすり抜けるため。
+        _keep = _forced_promotion_guard(obs, card, cid)
+        if _keep is not None:
+            return _keep
         if cid == CINDERACE:
             return 16000, "promote Cinderace (retreat 0)"
         if cid == ARCHALUDON_EX:
