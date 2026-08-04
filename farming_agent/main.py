@@ -85,6 +85,16 @@ def _crop_cycle_days(crop: str) -> int:
 
 CROP_CYCLE_DAYS = {c: _crop_cycle_days(c) for c in CROP_META}
 
+# Leaderboard-derived: across 20 top public submissions (avg final money
+# $93k-$123k), essentially every one plants ONLY wheat/melon/strawberry --
+# carrot and tomato appear only in the two lowest-scoring of the twenty, in
+# small quantities, and correlate with materially worse outcomes. Likewise
+# every top submission buys only cow+sheep (never goose, except again the
+# two worst performers). Restricting the candidate set to what's actually
+# proven to work beats trying to out-theorize it from the raw price table.
+PLANTABLE_CROPS: Tuple[str, ...] = ("WHEAT", "MELON", "STRAWBERRY")
+KEPT_ANIMALS: Tuple[str, ...] = ("COW", "SHEEP")
+
 # ---------------------------------------------------------------------------
 # 2. Base portfolio: a 5x5-local deterministic pattern per quadrant.
 #    Index = (y % 5) * 5 + (x % 5) -> crop. Length must be 25.
@@ -99,11 +109,22 @@ def _expand_mix(counts: Tuple[Tuple[str, int], ...]) -> List[str]:
     return pattern[:25]
 
 
+# Strawberry-dominant: melon's raw per-day margin looks best in isolation,
+# but it's a one-time crop, so many melon tiles planted around the same time
+# mature and dump onto the market together -- and melon's glut-side price
+# function is brutally punishing (squared falloff, above_target=3.6). Top
+# submissions instead lean heavily on strawberry: an *ongoing* crop whose
+# per-tile production ticks are staggered by each tile's own planting day,
+# so its sales trickle in continuously instead of arriving in one glut wave.
+# Wheat stays present mainly for animal feed self-sufficiency plus fast,
+# cheap cash cycling. Ratio (~60% strawberry / 24% melon / 16% wheat) is
+# reverse-engineered from top submissions' seed-purchase volumes normalized
+# by each crop's typical replant frequency.
 BASE_MIXES: Dict[str, List[str]] = {
-    "NW": _expand_mix((("MELON", 8), ("STRAWBERRY", 6), ("WHEAT", 5), ("CARROT", 4), ("TOMATO", 2))),
-    "NE": _expand_mix((("STRAWBERRY", 10), ("MELON", 6), ("WHEAT", 5), ("TOMATO", 2), ("CARROT", 2))),
-    "SW": _expand_mix((("STRAWBERRY", 10), ("MELON", 6), ("WHEAT", 5), ("TOMATO", 2), ("CARROT", 2))),
-    "SE": _expand_mix((("STRAWBERRY", 10), ("MELON", 6), ("WHEAT", 5), ("TOMATO", 2), ("CARROT", 2))),
+    "NW": _expand_mix((("STRAWBERRY", 15), ("MELON", 6), ("WHEAT", 4))),
+    "NE": _expand_mix((("STRAWBERRY", 15), ("MELON", 6), ("WHEAT", 4))),
+    "SW": _expand_mix((("STRAWBERRY", 15), ("MELON", 6), ("WHEAT", 4))),
+    "SE": _expand_mix((("STRAWBERRY", 15), ("MELON", 6), ("WHEAT", 4))),
 }
 
 CROWD_FACTOR_K = 0.045
@@ -114,25 +135,44 @@ PRICE_FACTOR_CAP = 1.35
 
 ADAPTIVE_PRICE_DAMAGE_RATIO = 0.58
 ADAPTIVE_RIVAL_CROWD_TILES = 5
-ADAPTIVE_SCORE_GAP = 1.28
+# Raised from the original 1.28: the base mix above already encodes a
+# proven real-world ratio, not a naive per-day-rate ranking (which would
+# wrongly rank wheat/melon above strawberry -- see the BASE_MIXES comment).
+# Only deviate from it when the signal is very strong, not on every small
+# score wobble.
+ADAPTIVE_SCORE_GAP = 1.6
 DIVERSIFICATION_THRESHOLD = 0.90
 DIVERSIFICATION_MAX_CHOICES = 2
-CROP_SHARE_CAP = 0.35  # no crop may claim more than this fraction of owned tiles
+# Per-crop diversification ceiling, as a fraction of owned tiles. Melon
+# keeps a tight cap (its own-glut risk is the highest of the three);
+# strawberry gets room to be the dominant crop, matching observed play.
+CROP_SHARE_CAP: Dict[str, float] = {"STRAWBERRY": 0.65, "MELON": 0.30, "WHEAT": 0.50}
+CROP_SHARE_CAP_DEFAULT = 0.35
 
-HERD_ROUTE_HEAVY_RATIO = 1.18
-CARE_K = 0.10
-CROWD_ANIMAL_K = 0.15
+# Leaderboard-derived fixed cow:sheep ratio (COW/SHEEP purchase totals are
+# consistently ~4:3 across every top submission, regardless of milk/wool
+# spot prices at purchase time) -- simpler and more reliable than trying to
+# re-derive it from a live market signal.
+COW_SHEEP_RATIO = (4, 3)
+# Total concurrent animal target once fully expanded, by number of owned
+# quadrants -- derived from top submissions' total BUY_ANIMAL volume
+# (cow+sheep totalled ~14 per game at 3 quadrants owned).
+ANIMAL_SLOT_CAP_BY_QUADRANTS: Dict[int, int] = {1: 4, 2: 9, 3: 14, 4: 14}
 
 WHEAT_FEED_RESERVE_DAYS = 4
-LAND_FIRST_DAY, LAND_SECOND_DAY, LAND_THIRD_DAY = 4, 9, 15
+# Leaderboard-derived: virtually every top submission buys land on exactly
+# day 7 and day 10, and stops there -- nobody buys the third ($4000, SE)
+# quadrant. With ~19 days left after day 10, its cost doesn't pay back in
+# time; the 3-quadrant (75-tile) footprint is the real optimum, not 4.
+LAND_FIRST_DAY, LAND_SECOND_DAY = 7, 10
 LAND_HARD_DEADLINE = 22
-LAND_BUFFER = (400, 600, 900)
+MAX_LAND_PURCHASES = 2
+LAND_BUFFER = (100, 150)
 
 ANIMAL_BUY_BUFFER = 250
 ANIMAL_LAST_BUY_DAY = {a: FINAL_DAY - m["first_yield_day"] for a, m in ANIMAL_META.items()}
 
 HIRE_HOUR_WINDOW = (0, 5)
-HIRE_STOP_DAY = 27
 # Hire cost is fib-scaled (1, 1, 2, 3, 5, 8, ...) -- the first several hires
 # on any given day are essentially free relative to what a hand can harvest
 # and sell that same day, so this floor only needs to guard against actually
@@ -140,8 +180,16 @@ HIRE_STOP_DAY = 27
 # recovery: a lean bank balance is exactly when the extra labor is needed
 # most (to get tiles watered/harvested and cash flowing again).
 HIRE_MONEY_FLOOR = 20
-HIRE_TASKS_PER_HAND = 4
-HIRE_MAX_PER_TURN = 8
+# Leaderboard-derived daily hire-count target (day 0..29), read directly off
+# a top submission's actual per-day hire volume: ramps with land ownership
+# (day 7 / day 10 jumps line up exactly with the two BUY_LAND days above),
+# plateaus at 12 once all 3 quadrants are owned, tapers in the final days as
+# there's less season left to capture a new hand's output.
+HIRE_TARGET_SCHEDULE: Tuple[int, ...] = (
+    4, 5, 6, 6, 6, 7, 6, 8, 10, 11,
+    12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+    12, 12, 12, 12, 12, 12, 12, 11, 10, 9,
+)
 
 MAX_MARKET_ORDERS = 10
 BUY_STOP_DAY = 27
@@ -267,32 +315,22 @@ def _rival_crop_tiles(obs: Dict[str, Any], crop: str) -> int:
     return count
 
 
-def _rival_animal_count(obs: Dict[str, Any], species: str) -> int:
-    rival = _rival_farm(obs)
-    if rival is None:
-        return 0
-    count = 0
-    for row in rival.get("tiles", ()):
-        for tile in row:
-            if isinstance(tile, dict) and tile.get("animal") == species:
-                count += 1
-    return count
-
-
 # ---------------------------------------------------------------------------
 # 6. Crop scoring & adaptive tile planning
 # ---------------------------------------------------------------------------
 
-def _crop_rate(crop: str, obs: Dict[str, Any], day: int, own_committed: Dict[str, int], crop_cap: int) -> float:
+def _crop_rate(crop: str, obs: Dict[str, Any], day: int, own_committed: Dict[str, int], crop_cap: Dict[str, int]) -> float:
     meta = CROP_META[crop]
 
     # Hard diversification cap: melon's raw margin dwarfs everything else
     # (roughly 3-5x), so a *soft* crowding penalty can never talk it down
     # far enough to stop a pure-economics ranking from planting it on every
     # tile -- that would crash melon's own sale price the moment it's all
-    # harvested at once. Once we've already committed crop_cap tiles to a
-    # crop this pass, it's simply off the table for further new plantings.
-    if own_committed.get(crop, 0) >= crop_cap:
+    # harvested at once. Once we've already committed crop_cap[crop] tiles
+    # to a crop this pass, it's simply off the table for further new
+    # plantings. Caps are per-crop (see CROP_SHARE_CAP) since strawberry's
+    # own-glut risk is much lower than melon's.
+    if own_committed.get(crop, 0) >= crop_cap.get(crop, 0):
         return float("-inf")
 
     price = _price(obs, crop)
@@ -315,7 +353,7 @@ def _crop_rate(crop: str, obs: Dict[str, Any], day: int, own_committed: Dict[str
     return (gross * crowd_factor * demand_factor * price_factor) / days
 
 
-def _plan_crop_for_tile(x: int, y: int, quadrant: str, obs: Dict[str, Any], day: int, own_committed: Dict[str, int], crop_cap: int) -> str:
+def _plan_crop_for_tile(x: int, y: int, quadrant: str, obs: Dict[str, Any], day: int, own_committed: Dict[str, int], crop_cap: Dict[str, int]) -> str:
     mix = BASE_MIXES.get(quadrant, BASE_MIXES["NW"])
     idx = (y % 5) * 5 + (x % 5)
     planned = mix[idx]
@@ -324,9 +362,9 @@ def _plan_crop_for_tile(x: int, y: int, quadrant: str, obs: Dict[str, Any], day:
     planned_score = _crop_rate(planned, obs, day, own_committed, crop_cap)
     damaged = planned_price <= ADAPTIVE_PRICE_DAMAGE_RATIO * BASE_PRICE[planned]
     crowded = _rival_crop_tiles(obs, planned) >= ADAPTIVE_RIVAL_CROWD_TILES
-    capped_out = own_committed.get(planned, 0) >= crop_cap
+    capped_out = own_committed.get(planned, 0) >= crop_cap.get(planned, 0)
 
-    ranked = sorted(((_crop_rate(c, obs, day, own_committed, crop_cap), c) for c in CROP_META), key=lambda p: p[0], reverse=True)
+    ranked = sorted(((_crop_rate(c, obs, day, own_committed, crop_cap), c) for c in PLANTABLE_CROPS), key=lambda p: p[0], reverse=True)
     best_score, best_crop = ranked[0]
     if best_score == float("-inf"):
         return planned
@@ -346,39 +384,31 @@ def _plan_crop_for_tile(x: int, y: int, quadrant: str, obs: Dict[str, Any], day:
 # 7. Herd sizing & animal slot planning
 # ---------------------------------------------------------------------------
 
+def _animal_slot_cap_for(owned: List[str]) -> int:
+    return ANIMAL_SLOT_CAP_BY_QUADRANTS.get(len(owned), 14)
+
+
 def _herd_target(obs: Dict[str, Any], animal_slot_cap: int) -> Dict[str, int]:
+    """Fixed cow:sheep ratio, goose excluded entirely.
+
+    Leaderboard data shows every top submission converging on a ~4:3
+    cow:sheep split regardless of milk/wool spot prices at purchase time,
+    and never buying goose (the two lowest-scoring submissions of twenty
+    were the only ones that did). A live market-reactive split was tried
+    and discarded -- it doesn't beat this fixed ratio in practice, and the
+    fixed version is simpler and more predictable.
+    """
     global _HERD_ROUTE
     if _HERD_ROUTE is not None:
         return _HERD_ROUTE
 
-    signals = {}
-    for species, meta in ANIMAL_META.items():
-        product = meta["product"]
-        price = _price(obs, product)
-        base = BASE_PRICE[product]
-        demand = _town_pull(product, obs)
-        rival = _rival_animal_count(obs, species)
-        signals[species] = (price / base) * (1 + CARE_K * demand) / (1 + CROWD_ANIMAL_K * rival)
+    cow_share, sheep_share = COW_SHEEP_RATIO
+    total_share = cow_share + sheep_share
+    cow = max(1, round(animal_slot_cap * cow_share / total_share))
+    sheep = max(1, animal_slot_cap - cow)
 
-    total_signal = sum(signals.values()) or 1.0
-    weights = {s: v / total_signal for s, v in signals.items()}
-
-    best = max(weights, key=weights.get)
-    if weights[best] >= HERD_ROUTE_HEAVY_RATIO / 3:
-        route = {s: max(1, round(w * animal_slot_cap)) for s, w in weights.items()}
-    else:
-        route = {s: max(1, round(animal_slot_cap / 3)) for s in ANIMAL_META}
-
-    total = sum(route.values())
-    if total > animal_slot_cap:
-        # Trim from the smallest-weight species first.
-        for s in sorted(route, key=lambda s: weights[s]):
-            while total > animal_slot_cap and route[s] > 0:
-                route[s] -= 1
-                total -= 1
-
-    _HERD_ROUTE = route
-    return route
+    _HERD_ROUTE = {"COW": cow, "SHEEP": sheep, "GOOSE": 0}
+    return _HERD_ROUTE
 
 
 def _animal_slot_plan(obs: Dict[str, Any], board_size: int, owned: List[str], herd_target: Dict[str, int]) -> List[Tuple[int, int, str]]:
@@ -452,7 +482,7 @@ def _build_tasks(obs: Dict[str, Any], board_size: int, day: int) -> Tuple[List[T
     private = obs.get("private", {})
     shed = private.get("shed", {})
 
-    animal_slot_cap = min(9, 4 * len(owned))
+    animal_slot_cap = _animal_slot_cap_for(owned)
     herd_target = _herd_target(obs, animal_slot_cap)
     slot_plan = _animal_slot_plan(obs, board_size, owned, herd_target)
     slot_by_pos = {(x, y): species for x, y, species in slot_plan}
@@ -469,7 +499,11 @@ def _build_tasks(obs: Dict[str, Any], board_size: int, day: int) -> Tuple[List[T
             if isinstance(tile, dict) and tile.get("kind") == "PLANT":
                 own_committed[tile["crop"]] = own_committed.get(tile["crop"], 0) + 1
 
-    crop_cap = max(3, round(CROP_SHARE_CAP * 25 * len(owned)))
+    total_owned_tiles = 25 * len(owned)
+    crop_cap = {
+        crop: max(3, round(CROP_SHARE_CAP.get(crop, CROP_SHARE_CAP_DEFAULT) * total_owned_tiles))
+        for crop in PLANTABLE_CROPS
+    }
 
     for y in range(board_size):
         for x in range(board_size):
@@ -693,9 +727,12 @@ def _land_order(obs: Dict[str, Any], day: int, money: float) -> Tuple[List[List[
     farm = obs["farms"][obs.get("player", 0)]
     owned = farm.get("unlocked_quadrants", ["NW"])
     n_extra = len(owned) - 1
-    if n_extra >= len(LAND_ORDER) or day > LAND_HARD_DEADLINE:
+    # Capped at MAX_LAND_PURCHASES (2): the third quadrant ($4000, SE) is
+    # deliberately never bought -- see MAX_LAND_PURCHASES/LAND_FIRST_DAY
+    # comment above.
+    if n_extra >= MAX_LAND_PURCHASES or day > LAND_HARD_DEADLINE:
         return [], money
-    trigger_day = (LAND_FIRST_DAY, LAND_SECOND_DAY, LAND_THIRD_DAY)[n_extra]
+    trigger_day = (LAND_FIRST_DAY, LAND_SECOND_DAY)[n_extra]
     if day < trigger_day:
         return [], money
     cost = LAND_PRICES[n_extra]
@@ -779,14 +816,15 @@ def _product_orders(obs: Dict[str, Any], day: int, animal_count: int, money: flo
     return orders, money
 
 
-def _hire_orders(obs: Dict[str, Any], day: int, hour: int, n_pending_tasks: int, money: float) -> Tuple[List[List[Any]], float]:
-    if day >= HIRE_STOP_DAY or not (HIRE_HOUR_WINDOW[0] <= hour <= HIRE_HOUR_WINDOW[1]):
+def _hire_orders(obs: Dict[str, Any], day: int, hour: int, money: float) -> Tuple[List[List[Any]], float]:
+    if not (HIRE_HOUR_WINDOW[0] <= hour <= HIRE_HOUR_WINDOW[1]):
         return [], money
     farm = obs["farms"][obs.get("player", 0)]
     hires_today = farm.get("hires_today", 0)
     current_hands = len(farm.get("hands", []))
 
-    target_hands = min(HIRE_MAX_PER_TURN, max(0, (n_pending_tasks // HIRE_TASKS_PER_HAND) - current_hands))
+    schedule_target = HIRE_TARGET_SCHEDULE[min(day, len(HIRE_TARGET_SCHEDULE) - 1)]
+    target_hands = max(0, schedule_target - current_hands)
     orders: List[List[Any]] = []
     n = hires_today
     for _ in range(target_hands):
@@ -799,13 +837,13 @@ def _hire_orders(obs: Dict[str, Any], day: int, hour: int, n_pending_tasks: int,
     return orders, money
 
 
-def _market_orders(obs: Dict[str, Any], day: int, hour: int, seed_need: Dict[str, int], n_pending_tasks: int) -> List[List[Any]]:
+def _market_orders(obs: Dict[str, Any], day: int, hour: int, seed_need: Dict[str, int]) -> List[List[Any]]:
     farm = obs["farms"][obs.get("player", 0)]
     animal_count = sum(
         1 for row in farm["tiles"] for tile in row
         if isinstance(tile, dict) and tile.get("animal") in ANIMAL_META
     )
-    animal_slot_cap = min(9, 4 * len(farm.get("unlocked_quadrants", ["NW"])))
+    animal_slot_cap = _animal_slot_cap_for(farm.get("unlocked_quadrants", ["NW"]))
     herd_target = _herd_target(obs, animal_slot_cap)
 
     # Every buy category below draws from the same running bank balance --
@@ -817,18 +855,19 @@ def _market_orders(obs: Dict[str, Any], day: int, hour: int, seed_need: Dict[str
     # over in one turn).
     #
     # On top of that, only expose a *fraction* of the bank as spendable
-    # early on (ramping to the full balance by day ~10). Committing the
-    # entire day-0 bankroll into seeds/animals/hands in one shot leaves no
-    # cushion to operate on while that first planting matures -- a single
-    # slow patch (a run of unlucky weeds, a depressed price) then strands
-    # the farm cash-poor for most of the season with no room to react,
-    # which is worse than growing the portfolio in step with actual cash
-    # flow from early harvests.
-    spend_fraction = min(1.0, 0.45 + 0.06 * day)
+    # early on, ramping to the full balance by day ~21. Day 7-10 is exactly
+    # when the leaderboard-derived land-purchase and hire-ramp schedule
+    # peaks (2nd BUY_LAND + jump to 12 hires/day + restocking seeds for a
+    # freshly-unlocked quadrant, all landing in the same few days) -- a fast
+    # ramp back to 100% spending power right there recreates the same
+    # cash-crunch death spiral the pacing exists to prevent, just shifted a
+    # week later instead of removed. Keeping a real cushion through that
+    # whole window, not just day 0, is what actually avoids it.
+    spend_fraction = min(1.0, 0.35 + 0.03 * day)
     money = float(farm.get("money", 0)) * spend_fraction
     ordered: List[List[Any]] = list(_sell_orders(obs, animal_count))
 
-    hire, money = _hire_orders(obs, day, hour, n_pending_tasks, money)
+    hire, money = _hire_orders(obs, day, hour, money)
     ordered += hire
     land, money = _land_order(obs, day, money)
     ordered += land
@@ -856,7 +895,7 @@ def _agent_impl(obs: Dict[str, Any]) -> Dict[str, Any]:
 
     tasks, seed_need = _build_tasks(obs, board_size, day)
     farmer_action, hand_actions = _dispatch(obs, tasks, seed_need, board_size)
-    market = _market_orders(obs, day, hour, seed_need, len(tasks))
+    market = _market_orders(obs, day, hour, seed_need)
 
     return {"farmer": farmer_action, "hands": hand_actions, "market": market}
 
