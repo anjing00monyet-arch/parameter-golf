@@ -1,0 +1,178 @@
+Loading environment open_spiel_env failed: No module named 'pyspiel'
+{
+  "summary": {
+    "candidate": "agent/main.py",
+    "baseline": "baselines/submission_23_heuristic.py",
+    "games_requested": 10,
+    "matches_played": 20,
+    "wins": 20,
+    "losses": 0,
+    "ties": 0,
+    "mean_candidate_money": 130979.45,
+    "minimum_candidate_money": 99476.0,
+    "mean_margin": 18184.55,
+    "minimum_margin": 9988.0
+  },
+  "matches": [
+    {
+      "seed": 8000,
+      "candidate_seat": 0,
+      "candidate_money": 127263.0,
+      "baseline_money": 117275.0,
+      "margin": 9988.0,
+      "result": "win"
+    },
+    {
+      "seed": 8000,
+      "candidate_seat": 1,
+      "candidate_money": 130808.0,
+      "baseline_money": 113886.0,
+      "margin": 16922.0,
+      "result": "win"
+    },
+    {
+      "seed": 8001,
+      "candidate_seat": 0,
+      "candidate_money": 152727.0,
+      "baseline_money": 125748.0,
+      "margin": 26979.0,
+      "result": "win"
+    },
+    {
+      "seed": 8001,
+      "candidate_seat": 1,
+      "candidate_money": 140671.0,
+      "baseline_money": 127793.0,
+      "margin": 12878.0,
+      "result": "win"
+    },
+    {
+      "seed": 8002,
+      "candidate_seat": 0,
+      "candidate_money": 135220.0,
+      "baseline_money": 121087.0,
+      "margin": 14133.0,
+      "result": "win"
+    },
+    {
+      "seed": 8002,
+      "candidate_seat": 1,
+      "candidate_money": 135613.0,
+      "baseline_money": 121342.0,
+      "margin": 14271.0,
+      "result": "win"
+    },
+    {
+      "seed": 8003,
+      "candidate_seat": 0,
+      "candidate_money": 116044.0,
+      "baseline_money": 105893.0,
+      "margin": 10151.0,
+      "result": "win"
+    },
+    {
+      "seed": 8003,
+      "candidate_seat": 1,
+      "candidate_money": 116044.0,
+      "baseline_money": 105893.0,
+      "margin": 10151.0,
+      "result": "win"
+    },
+    {
+      "seed": 8004,
+      "candidate_seat": 0,
+      "candidate_money": 111627.0,
+      "baseline_money": 87135.0,
+      "margin": 24492.0,
+      "result": "win"
+    },
+    {
+      "seed": 8004,
+      "candidate_seat": 1,
+      "candidate_money": 111627.0,
+      "baseline_money": 87135.0,
+      "margin": 24492.0,
+      "result": "win"
+    },
+    {
+      "seed": 8005,
+      "candidate_seat": 0,
+      "candidate_money": 99878.0,
+      "baseline_money": 89182.0,
+      "margin": 10696.0,
+      "result": "win"
+    },
+    {
+      "seed": 8005,
+      "candidate_seat": 1,
+      "candidate_money": 99476.0,
+      "baseline_money": 89182.0,
+      "margin": 10294.0,
+      "result": "win"
+    },
+    {
+      "seed": 8006,
+      "candidate_seat": 0,
+      "candidate_money": 147801.0,
+      "baseline_money": 129021.0,
+      "margin": 18780.0,
+      "result": "win"
+    },
+    {
+      "seed": 8006,
+      "candidate_seat": 1,
+      "candidate_money": 147801.0,
+      "baseline_money": 129021.0,
+      "margin": 18780.0,
+      "result": "win"
+    },
+    {
+      "seed": 8007,
+      "candidate_seat": 0,
+      "candidate_money": 130399.0,
+      "baseline_money": 98366.0,
+      "margin": 32033.0,
+      "result": "win"
+    },
+    {
+      "seed": 8007,
+      "candidate_seat": 1,
+      "candidate_money": 130378.0,
+      "baseline_money": 98351.0,
+      "margin": 32027.0,
+      "result": "win"
+    },
+    {
+      "seed": 8008,
+      "candidate_seat": 0,
+      "candidate_money": 142283.0,
+      "baseline_money": 125093.0,
+      "margin": 17190.0,
+      "result": "win"
+    },
+    {
+      "seed": 8008,
+      "candidate_seat": 1,
+      "candidate_money": 142283.0,
+      "baseline_money": 125093.0,
+      "margin": 17190.0,
+      "result": "win"
+    },
+    {
+      "seed": 8009,
+      "candidate_seat": 0,
+      "candidate_money": 145052.0,
+      "baseline_money": 124054.0,
+      "margin": 20998.0,
+      "result": "win"
+    },
+    {
+      "seed": 8009,
+      "candidate_seat": 1,
+      "candidate_money": 156594.0,
+      "baseline_money": 135348.0,
+      "margin": 21246.0,
+      "result": "win"
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+Loading environment open_spiel_env failed: No module named 'pyspiel'
+{
+  "summary": {
+    "candidate": "agent/main.py",
+    "baseline": "baselines/frontier_router_original.py",
+    "games_requested": 10,
+    "matches_played": 20,
+    "wins": 16,
+    "losses": 4,
+    "ties": 0,
+    "mean_candidate_money": 121946.1,
+    "minimum_candidate_money": 88660.0,
+    "mean_margin": 1523.8,
+    "minimum_margin": -8529.0
+  },
+  "matches": [
+    {
+      "seed": 9000,
+      "candidate_seat": 0,
+      "candidate_money": 135269.0,
+      "baseline_money": 133054.0,
+      "margin": 2215.0,
+      "result": "win"
+    },
+    {
+      "seed": 9000,
+      "candidate_seat": 1,
+      "candidate_money": 135269.0,
+      "baseline_money": 133054.0,
+      "margin": 2215.0,
+      "result": "win"
+    },
+    {
+      "seed": 9001,
+      "candidate_seat": 0,
+      "candidate_money": 133969.0,
+      "baseline_money": 130832.0,
+      "margin": 3137.0,
+      "result": "win"
+    },
+    {
+      "seed": 9001,
+      "candidate_seat": 1,
+      "candidate_money": 131030.0,
+      "baseline_money": 133771.0,
+      "margin": -2741.0,
+      "result": "loss"
+    },
+    {
+      "seed": 9002,
+      "candidate_seat": 0,
+      "candidate_money": 99973.0,
+      "baseline_money": 97914.0,
+      "margin": 2059.0,
+      "result": "win"
+    },
+    {
+      "seed": 9002,
+      "candidate_seat": 1,
+      "candidate_money": 99782.0,
+      "baseline_money": 98105.0,
+      "margin": 1677.0,
+      "result": "win"
+    },
+    {
+      "seed": 9003,
+      "candidate_seat": 0,
+      "candidate_money": 125017.0,
+      "baseline_money": 122634.0,
+      "margin": 2383.0,
+      "result": "win"
+    },
+    {
+      "seed": 9003,
+      "candidate_seat": 1,
+      "candidate_money": 125017.0,
+      "baseline_money": 122634.0,
+      "margin": 2383.0,
+      "result": "win"
+    },
+    {
+      "seed": 9004,
+      "candidate_seat": 0,
+      "candidate_money": 88660.0,
+      "baseline_money": 97189.0,
+      "margin": -8529.0,
+      "result": "loss"
+    },
+    {
+      "seed": 9004,
+      "candidate_seat": 1,
+      "candidate_money": 96954.0,
+      "baseline_money": 88438.0,
+      "margin": 8516.0,
+      "result": "win"
+    },
+    {
+      "seed": 9005,
+      "candidate_seat": 0,
+      "candidate_money": 135676.0,
+      "baseline_money": 137451.0,
+      "margin": -1775.0,
+      "result": "loss"
+    },
+    {
+      "seed": 9005,
+      "candidate_seat": 1,
+      "candidate_money": 137258.0,
+      "baseline_money": 135869.0,
+      "margin": 1389.0,
+      "result": "win"
+    },
+    {
+      "seed": 9006,
+      "candidate_seat": 0,
+      "candidate_money": 103335.0,
+      "baseline_money": 100333.0,
+      "margin": 3002.0,
+      "result": "win"
+    },
+    {
+      "seed": 9006,
+      "candidate_seat": 1,
+      "candidate_money": 103335.0,
+      "baseline_money": 100333.0,
+      "margin": 3002.0,
+      "result": "win"
+    },
+    {
+      "seed": 9007,
+      "candidate_seat": 0,
+      "candidate_money": 138610.0,
+      "baseline_money": 137108.0,
+      "margin": 1502.0,
+      "result": "win"
+    },
+    {
+      "seed": 9007,
+      "candidate_seat": 1,
+      "candidate_money": 138610.0,
+      "baseline_money": 137108.0,
+      "margin": 1502.0,
+      "result": "win"
+    },
+    {
+      "seed": 9008,
+      "candidate_seat": 0,
+      "candidate_money": 115740.0,
+      "baseline_money": 113285.0,
+      "margin": 2455.0,
+      "result": "win"
+    },
+    {
+      "seed": 9008,
+      "candidate_seat": 1,
+      "candidate_money": 115740.0,
+      "baseline_money": 113285.0,
+      "margin": 2455.0,
+      "result": "win"
+    },
+    {
+      "seed": 9009,
+      "candidate_seat": 0,
+      "candidate_money": 135098.0,
+      "baseline_money": 143044.0,
+      "margin": -7946.0,
+      "result": "loss"
+    },
+    {
+      "seed": 9009,
+      "candidate_seat": 1,
+      "candidate_money": 144580.0,
+      "baseline_money": 133005.0,
+      "margin": 11575.0,
+      "result": "win"
+    }
+  ]
+}
