@@ -1276,6 +1276,7 @@ def _unit_actions(obs, config, farm, private, roles):
     used_workers = set()
     used_missions = set()
     used_targets = set()
+    assigned_mission_of = {}
     shed_capacity = int(_cfg(config, "shedCapacity", SHED_CAPACITY))
     drop_room = max(0, shed_capacity - summary["shed_load"])
     for _, distance, worker_index, mission_index, _, _, target in sorted(pairs):
@@ -1357,12 +1358,143 @@ def _unit_actions(obs, config, farm, private, roles):
         actions[worker_index] = action
         used_workers.add(worker_index)
         used_missions.add(mission_index)
+        if mission["kind"] in ("FIELD", "PICKUP"):
+            assigned_mission_of[worker_index] = mission_index
+
+    _refine_assignment_2opt(
+        assigned_mission_of, missions, pairs, positions, tiles, actions
+    )
 
     return {
         "farmer": actions[0] if actions else ["PASS"],
         "hands": actions[1:],
         "liquidation": liquidation,
     }
+
+
+def _refine_assignment_2opt(
+    assigned_mission_of, missions, pairs, positions, tiles, actions
+):
+    # The greedy pass above claims the single best-scoring (worker,
+    # mission) pair at each step, which is a well-known ~2-approximation
+    # of the optimal assignment, not the optimum itself: worker A can end
+    # up taking a job that's only marginally its best option while
+    # worker B, left with a much worse one, would have done far better
+    # swapping with A. Since swapping which of two ALREADY-assigned
+    # workers executes which of their two FIELD/PICKUP missions doesn't
+    # change the set of missions or targets claimed -- only who executes
+    # them -- it can never violate any of the uniqueness constraints the
+    # greedy pass already enforced, so any score-improving swap found
+    # here is safe to apply outright.
+    if len(assigned_mission_of) < 2:
+        return
+
+    score_lookup = {}
+    for neg_score, _dist, worker_index, mission_index, _, _, _target in pairs:
+        score_lookup[(worker_index, mission_index)] = -neg_score
+
+    swappable = [
+        w
+        for w, m in assigned_mission_of.items()
+        if missions[m]["kind"] in ("FIELD", "PICKUP")
+    ]
+    if len(swappable) < 2:
+        return
+
+    reach_cache = {}
+
+    def reachable(worker_index, target):
+        key = (worker_index, target)
+        cached = reach_cache.get(key)
+        if cached is not None:
+            return cached
+        position = (
+            int(positions[worker_index][0]),
+            int(positions[worker_index][1]),
+        )
+        if position == (int(target[0]), int(target[1])):
+            result = True
+        else:
+            result = _bfs_first_step(tiles, positions[worker_index], target) != [
+                "PASS"
+            ]
+        reach_cache[key] = result
+        return result
+
+    for _pass in range(3):
+        improved = False
+        for a in range(len(swappable)):
+            worker_i = swappable[a]
+            for b in range(a + 1, len(swappable)):
+                worker_k = swappable[b]
+                mission_j = assigned_mission_of[worker_i]
+                mission_l = assigned_mission_of[worker_k]
+                if mission_j == mission_l:
+                    continue
+                score_il = score_lookup.get((worker_i, mission_l))
+                score_kj = score_lookup.get((worker_k, mission_j))
+                if score_il is None or score_kj is None:
+                    continue
+                score_ij = score_lookup[(worker_i, mission_j)]
+                score_kl = score_lookup[(worker_k, mission_l)]
+                if score_il + score_kj <= score_ij + score_kl + 1e-6:
+                    continue
+                target_l = missions[mission_l].get("target")
+                target_j = missions[mission_j].get("target")
+                if target_l is None:
+                    target_l = _nearest_shed(
+                        (
+                            int(positions[worker_i][0]),
+                            int(positions[worker_i][1]),
+                        ),
+                        len(tiles),
+                        tiles,
+                    )
+                if target_j is None:
+                    target_j = _nearest_shed(
+                        (
+                            int(positions[worker_k][0]),
+                            int(positions[worker_k][1]),
+                        ),
+                        len(tiles),
+                        tiles,
+                    )
+                if not reachable(worker_i, target_l) or not reachable(
+                    worker_k, target_j
+                ):
+                    continue
+                assigned_mission_of[worker_i] = mission_l
+                assigned_mission_of[worker_k] = mission_j
+                improved = True
+        if not improved:
+            break
+
+    for worker_index, mission_index in assigned_mission_of.items():
+        mission = missions[mission_index]
+        position = (
+            int(positions[worker_index][0]),
+            int(positions[worker_index][1]),
+        )
+        if mission["kind"] == "FIELD":
+            target = mission["target"]
+        else:
+            target = _nearest_shed(position, len(tiles), tiles)
+        distance = _distance(position, target)
+        if mission["kind"] == "FIELD":
+            planned = mission["action"]
+            action = (
+                list(planned)
+                if distance == 0
+                else _bfs_first_step(tiles, positions[worker_index], target)
+            )
+        else:
+            action = (
+                ["PICKUP", mission["item"], int(mission["amount"])]
+                if distance == 0
+                else _bfs_first_step(tiles, positions[worker_index], target)
+            )
+        if action and not (action == ["PASS"] and distance > 0):
+            actions[worker_index] = action
 
 
 # Market and capital allocation
