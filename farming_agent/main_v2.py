@@ -175,7 +175,12 @@ PK = {
     "herd_final_day": 10.717,
     "melon_base": 10.2137,
     "melon_max": 11.7217,
-    "max_hands": 12.7634,
+    # 10-seed sweep vs the recorded top-tier opponent: rounds to 11 hands
+    # gives +3.7% avg vs the sub22-inherited 13 (extra workers push PASS
+    # rate up because the greedy hands the best jobs out first and later
+    # workers land on far/unavailable ones, and each hire still costs
+    # fib-priced money out of the same daily budget).
+    "max_hands": 11.0,
     "feed_stock_days": 2.1026,
 }
 _pk = _os.environ.get("PK_KNOBS")
