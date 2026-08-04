@@ -1,0 +1,50 @@
+name: kaggriculture-agent-lab CI
+
+on:
+  push:
+    paths:
+      - "kaggriculture_agent_lab/**"
+  pull_request:
+    paths:
+      - "kaggriculture_agent_lab/**"
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: kaggriculture_agent_lab
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Static check candidate agent
+        run: python tools/static_check.py agent/main.py
+
+      - name: Static check baseline
+        run: python tools/static_check.py baselines/frontier_router_original.py
+
+      - name: Contract tests
+        run: pytest -v
+
+      - name: Build submission archive
+        run: python tools/build_submission.py
+
+      - name: Upload submission artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: submission
+          path: kaggriculture_agent_lab/submissions/submission.tar.gz
+
+  # NOTE: real-engine head-to-head (tools/run_ab.py) is intentionally not
+  # run in CI. It needs kaggle-environments with the kaggriculture
+  # environment registered, which isn't installable from public PyPI as of
+  # this writing -- run it manually on a Kaggle Notebook instead.

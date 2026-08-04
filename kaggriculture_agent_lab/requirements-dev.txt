@@ -1,0 +1,7 @@
+pytest>=7.4
+
+# Only needed for tools/run_smoke.py's real-engine path and tools/run_ab.py.
+# As of this writing the kaggriculture environment is not published on
+# public PyPI's kaggle-environments releases; install it manually where
+# it's available (e.g. a Kaggle Notebook) if you need real-engine results.
+# kaggle-environments==1.32.2

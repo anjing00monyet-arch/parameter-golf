@@ -1,0 +1,30 @@
+{
+  "engine": {
+    "environment_name": "kaggriculture",
+    "episode_steps": 720,
+    "total_days": 30,
+    "seed": 8000
+  },
+  "ab": {
+    "games": 20,
+    "base_seed": 8000,
+    "swap_seats": true
+  },
+  "submission": {
+    "entrypoint": "agent/main.py",
+    "archive_member": "main.py",
+    "output": "submissions/submission.tar.gz"
+  },
+  "agent_spec": {
+    "_comment": "Parameters baked into agent/main.py at build time. Kept here so a future rebuild (tools/new_experiment.py) starts from the same known-good baseline instead of guessing values back out of the generated source.",
+    "source_episode_id": 89549522,
+    "source_seat": 1,
+    "adaptive_triad": true,
+    "treasury_start": 710,
+    "treasury_flush": 718,
+    "terminal_work_start": 704,
+    "clone_front_run": true,
+    "front_run_horizon": 1,
+    "front_run_items": ["MELON", "STRAWBERRY", "MILK", "WOOL"]
+  }
+}
