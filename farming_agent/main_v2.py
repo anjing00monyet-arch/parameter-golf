@@ -148,10 +148,10 @@ HERD_FINAL_DAY = 11
 ANIMAL_PURCHASE_LAST_DAY = 18
 ANIMAL_SLOTS = {"NW": 4, "NE": 5, "SW": 3, "SE": 0}
 CROP_MIX = {
-    "NW": {"MELON": 10, "WHEAT": 4, "CARROT": 2},
-    "NE": {"WHEAT": 4, "CARROT": 1},
-    "SW": {"WHEAT": 4, "CARROT": 1},
-    "SE": {"WHEAT": 5, "CARROT": 2},
+    "NW": {"MELON": 10, "WHEAT": 2},
+    "NE": {"WHEAT": 2},
+    "SW": {"WHEAT": 2},
+    "SE": {"WHEAT": 3},
 }
 MELON_TILES_MIN = 8
 MELON_TILES_BASE = 10
@@ -739,10 +739,13 @@ def _crop_jobs(obs, jobs, tile, target, day, liquidation):
         ):
             # Each covered production tick yields 2 instead of 1, and the
             # cover lasts 3 days, so value it at roughly the extra units
-            # the window can actually pay out.
+            # the window can actually pay out. Below day 10 it still
+            # competes with PLANT for scarce establishment-phase labor, so
+            # it stays bottom-tier; once land is established it competes
+            # on a normal tier instead of being starved indefinitely.
             _add_job(
                 jobs,
-                6,
+                1 if day >= 10 else 6,
                 0.8 * price,
                 target,
                 ("FERTILIZE",),
@@ -790,7 +793,7 @@ def _crop_jobs(obs, jobs, tile, target, day, liquidation):
         # In the bonus window each watered day adds 2 units instead of 1.
         _add_job(
             jobs,
-            6,
+            1 if day >= 10 else 6,
             0.8 * price,
             target,
             ("FERTILIZE",),
@@ -1114,7 +1117,7 @@ def _unit_actions(obs, config, farm, private, roles):
                 "kind": "PICKUP",
                 "item": "FERTILIZER",
                 "amount": amount,
-                "priority": 6,
+                "priority": 1 if day >= 10 else 6,
                 "value": 150,
                 "target": None,
             }
