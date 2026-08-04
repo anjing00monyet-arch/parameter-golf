@@ -31,6 +31,7 @@ CROPS = {
         "max_day": 8,
         "max_yield": 4,
         "ongoing": True,
+        "interval": 1,
         "ripe": 8,
         "last_plant": 19,
     },
@@ -40,6 +41,7 @@ CROPS = {
         "max_day": 10,
         "max_yield": 4,
         "ongoing": True,
+        "interval": 2,
         "ripe": 10,
         "last_plant": 18,
     },
@@ -139,36 +141,60 @@ LAND_PRICES = (1000, 2000, 4000)
 MARKET_I0 = 10000
 TOTAL_DAYS = 30
 MAX_MARKET_ORDERS = 10
-MAX_HANDS = 12
-CORE_HERD = 4
-MID_HERD = 8
-TARGET_HERD = 12
-HERD_EXPANSION_DAY = 7
-HERD_FINAL_DAY = 11
+MAX_HANDS = 12  # overridden below
+CORE_HERD_SEQUENCE = ("COW", "COW", "COW", "SHEEP")
+CORE_HERD = len(CORE_HERD_SEQUENCE)
+MID_HERD = 11  # overridden below
+TARGET_HERD = 15  # overridden below
+HERD_EXPANSION_DAY = 7  # overridden below
+HERD_FINAL_DAY = 11  # overridden below
 ANIMAL_PURCHASE_LAST_DAY = 18
-ANIMAL_SLOTS = {"NW": 4, "NE": 5, "SW": 3, "SE": 0}
+ANIMAL_SLOTS = {"NW": 4, "NE": 7, "SW": 4, "SE": 0}
 CROP_MIX = {
-    "NW": {"MELON": 10, "WHEAT": 2},
-    "NE": {"WHEAT": 2},
-    "SW": {"WHEAT": 2},
-    "SE": {"WHEAT": 3},
+    "NW": {"MELON": 10, "WHEAT": 4, "CARROT": 2},
+    "NE": {"WHEAT": 4, "CARROT": 1},
+    "SW": {"WHEAT": 4, "CARROT": 1},
+    "SE": {"WHEAT": 5, "CARROT": 2},
 }
 MELON_TILES_MIN = 8
-MELON_TILES_BASE = 10
-MELON_TILES_MAX = 12
+MELON_TILES_BASE = 10  # overridden below
+MELON_TILES_MAX = 12  # overridden below
 MAX_EXTRA_LAND = 2
 CASH_RESERVE = 250
-LIQUIDATION_TURNS = 38
+
+# --- Claude knob layer (mirror-tiebreaker surface; defaults = vanilla) ---
+import json as _json
+import os as _os
+PK = {
+    "reserve_mult": 0.9482,
+    "forecast_guard": 0.8511,
+    "glide_left": 14.1542,
+    "mid_herd": 10.9142,
+    "target_herd": 15.8663,
+    "herd_expansion_day": 6.4815,
+    "herd_final_day": 10.717,
+    "melon_base": 10.2137,
+    "melon_max": 11.7217,
+    "max_hands": 12.7634,
+    "feed_stock_days": 2.1026,
+}
+_pk = _os.environ.get("PK_KNOBS")
+if _pk:
+    PK.update(_json.loads(_pk))
+RESERVE_FRACTION = {k: v * PK["reserve_mult"] for k, v in RESERVE_FRACTION.items()}
+MAX_HANDS = int(round(PK["max_hands"]))
+MID_HERD = int(round(PK["mid_herd"]))
+TARGET_HERD = int(round(PK["target_herd"]))
+HERD_EXPANSION_DAY = int(round(PK["herd_expansion_day"]))
+HERD_FINAL_DAY = int(round(PK["herd_final_day"]))
+MELON_TILES_BASE = int(round(PK["melon_base"]))
+MELON_TILES_MAX = int(round(PK["melon_max"]))
+FEED_STOCK_DAYS = int(round(PK["feed_stock_days"]))
+LIQUIDATION_TURNS = 22
 SHED_CAPACITY = 100
 TRAVEL_COST = 8.0
-FEED_STOCK_DAYS = 3
+FEED_STOCK_DAYS = 3  # overridden below
 LAND_OPEN_DAYS = (5, 9)
-# Self-use fertilizer: FERTILIZE doubles a plant's per-production yield for
-# 3 days on any day it is also watered. On premium crops that is worth far
-# more than the ~$50-60 the fertilizer itself sells for, so we keep a
-# working reserve back from the market instead of selling every unit.
-FERTILIZE_CROPS = ("STRAWBERRY", "MELON", "TOMATO")
-FERTILIZER_KEEP = 24
 PRIORITY_BONUS = {
     -1: 120_000.0,
     0: 100_000.0,
@@ -181,6 +207,7 @@ PRIORITY_BONUS = {
 
 
 # Configuration, pricing, and routing helpers
+
 
 def _cfg(config, key, default):
     if config is None:
@@ -467,8 +494,13 @@ def _herd_targets(obs, farm, private, capacity):
     target_total = min(capacity, max(sum(owned.values()), stage_target))
 
     targets = {
-        "COW": max(2 if target_total >= CORE_HERD else 0, owned["COW"]),
-        "SHEEP": max(2 if target_total >= CORE_HERD else 0, owned["SHEEP"]),
+        animal: max(
+            CORE_HERD_SEQUENCE.count(animal)
+            if target_total >= CORE_HERD
+            else 0,
+            owned[animal],
+        )
+        for animal in ("COW", "SHEEP")
     }
     opponents = _opponent_animal_counts(obs)
     while sum(targets.values()) < target_total:
@@ -489,6 +521,7 @@ def _herd_targets(obs, farm, private, capacity):
     return targets
 
 
+
 def _role_plan(obs, farm):
     private = obs.get("private", {}) or {}
     tiles = farm.get("tiles", []) or []
@@ -504,7 +537,7 @@ def _role_plan(obs, farm):
 
     assigned = {"COW": 0, "SHEEP": 0}
     roles = {}
-    core_sequence = ("COW", "COW", "SHEEP", "SHEEP")
+    core_sequence = CORE_HERD_SEQUENCE
     for index, position in enumerate(active_slots):
         x, y = position
         tile = tiles[y][x]
@@ -713,6 +746,37 @@ def _crop_jobs(obs, jobs, tile, target, day, liquidation):
         return
 
     if rule["ongoing"]:
+        next_day = day + 1
+        interval = max(1, int(rule.get("interval", 1)))
+        days_since_first = (
+            next_day - int(tile.get("planted_day", day)) - rule["first"]
+        )
+        production_index = (
+            days_since_first // interval + 1 if days_since_first >= 0 else 0
+        )
+        produces_tonight = (
+            days_since_first >= 0
+            and days_since_first % interval == 0
+            and production_index <= rule["max_yield"]
+        )
+        fertilized_until = tile.get("fertilized_until_day", -1)
+        fertilized_until = (
+            -1 if fertilized_until is None else int(fertilized_until)
+        )
+        if (
+            crop == "STRAWBERRY"
+            and produces_tonight
+            and fertilized_until < day
+        ):
+            _add_job(
+                jobs,
+                2,
+                max(100.0, price),
+                target,
+                ("FERTILIZE",),
+                need="FERTILIZER",
+                reason="strawberry_production_fertilizer",
+            )
         if amount >= rule["max_yield"] - 1 or (amount > 0 and day >= 27):
             _add_job(
                 jobs,
@@ -730,27 +794,6 @@ def _crop_jobs(obs, jobs, tile, target, day, liquidation):
                 target,
                 ("WATER",),
                 reason="ongoing_water",
-            )
-        if (
-            crop in FERTILIZE_CROPS
-            and age >= rule["first"] - 1
-            and int(tile.get("fertilized_until_day", -1) or -1) < day
-            and amount < rule["max_yield"]
-        ):
-            # Each covered production tick yields 2 instead of 1, and the
-            # cover lasts 3 days, so value it at roughly the extra units
-            # the window can actually pay out. Below day 10 it still
-            # competes with PLANT for scarce establishment-phase labor, so
-            # it stays bottom-tier; once land is established it competes
-            # on a normal tier instead of being starved indefinitely.
-            _add_job(
-                jobs,
-                1 if day >= 10 else 6,
-                0.8 * price,
-                target,
-                ("FERTILIZE",),
-                need="FERTILIZER",
-                reason="fertilize_ongoing",
             )
         return
 
@@ -783,22 +826,6 @@ def _crop_jobs(obs, jobs, tile, target, day, liquidation):
             target,
             ("WATER",),
             reason="yield_water",
-        )
-    if (
-        crop in FERTILIZE_CROPS
-        and in_growth_window
-        and int(tile.get("fertilized_until_day", -1) or -1) < day
-        and amount < rule["max_yield"]
-    ):
-        # In the bonus window each watered day adds 2 units instead of 1.
-        _add_job(
-            jobs,
-            1 if day >= 10 else 6,
-            0.8 * price,
-            target,
-            ("FERTILIZE",),
-            need="FERTILIZER",
-            reason="fertilize_onetime",
         )
 
 
@@ -1047,6 +1074,7 @@ def _terminal_feasible(position, target, tiles, actions_left):
 
 # Duplicate-target-aware field assignment
 
+
 def _unit_actions(obs, config, farm, private, roles):
     tiles = farm["tiles"]
     board_size = len(tiles)
@@ -1098,27 +1126,34 @@ def _unit_actions(obs, config, farm, private, roles):
             }
         )
 
-    fert_jobs = [job for job in jobs if job["need"] == "FERTILIZER"]
-    shed_fert = int((private.get("shed", {}) or {}).get("FERTILIZER", 0) or 0)
-    carried_fert = sum(int(inv.get("FERTILIZER", 0) or 0) for inv in inventories)
-    fert_missing = max(0, len(fert_jobs) - carried_fert)
-    fert_pickups = min(
-        len(positions),
-        int(math.ceil(min(fert_missing, shed_fert) / 4.0)),
+    fertilizer_jobs = [
+        job for job in jobs if job.get("need") == "FERTILIZER"
+    ]
+    shed_fertilizer = int(
+        (private.get("shed", {}) or {}).get("FERTILIZER", 0) or 0
     )
-    fert_remaining = min(fert_missing, shed_fert)
-    for _ in range(fert_pickups):
-        amount = min(4, fert_remaining)
-        fert_remaining -= amount
-        if amount <= 0:
-            break
+    carried_fertilizer = sum(
+        int(inventory.get("FERTILIZER", 0) or 0)
+        for inventory in inventories
+    )
+    fertilizer_missing = max(
+        0, len(fertilizer_jobs) - carried_fertilizer
+    )
+    fertilizer_remaining = min(fertilizer_missing, shed_fertilizer)
+    fertilizer_pickups = min(
+        len(positions),
+        int(math.ceil(fertilizer_remaining / 4.0)),
+    )
+    for _ in range(fertilizer_pickups):
+        amount = min(4, fertilizer_remaining)
+        fertilizer_remaining -= amount
         missions.append(
             {
                 "kind": "PICKUP",
                 "item": "FERTILIZER",
                 "amount": amount,
-                "priority": 1 if day >= 10 else 6,
-                "value": 150,
+                "priority": 1,
+                "value": 700,
                 "target": None,
             }
         )
@@ -1250,7 +1285,10 @@ def _unit_actions(obs, config, farm, private, roles):
         target_key = target
         if mission["kind"] == "FIELD":
             operation = mission["action"][0]
-            if liquidation and operation in {"HARVEST", "COLLECT_FERTILIZER"}:
+            if (
+                liquidation
+                and operation in {"HARVEST", "COLLECT_FERTILIZER"}
+            ) or operation == "FERTILIZE":
                 target_key = (target, operation)
             if target_key in used_targets:
                 continue
@@ -1328,6 +1366,7 @@ def _unit_actions(obs, config, farm, private, roles):
 
 
 # Market and capital allocation
+
 
 def _fib(index):
     a, b = 1, 1
@@ -1436,6 +1475,13 @@ def _post_field_storage(private, field, capacity=SHED_CAPACITY):
             inventory["WHEAT"] -= 1
             if inventory["WHEAT"] == 0:
                 del inventory["WHEAT"]
+        elif (
+            operation == "FERTILIZE"
+            and int(inventory.get("FERTILIZER", 0) or 0) > 0
+        ):
+            inventory["FERTILIZER"] -= 1
+            if inventory["FERTILIZER"] == 0:
+                del inventory["FERTILIZER"]
 
     return shed, inventories
 
@@ -1459,7 +1505,7 @@ def _sell_quantity(item, have, inventory, day, shed_load, obs=None):
     future_price = _price_at(item, projected_inventory, obs)
     threshold = reserve
     if shed_load < 0.75 and left > 7:
-        threshold = max(threshold, 0.88 * future_price)
+        threshold = max(threshold, PK["forecast_guard"] * future_price)
 
     quantity = 0
     while (
@@ -1467,7 +1513,7 @@ def _sell_quantity(item, have, inventory, day, shed_load, obs=None):
         and _price_at(item, inventory + quantity, obs) >= threshold
     ):
         quantity += 1
-    if left <= 12:
+    if left <= int(round(PK["glide_left"])):
         forced = int(math.ceil(have / float(max(1, left - 1))))
         quantity = max(quantity, min(have, forced))
     return quantity
@@ -1546,14 +1592,6 @@ def _market_actions(obs, config, farm, private, roles, field):
         have = int(shed.get(item, 0) or 0)
         if item == "WHEAT" and left > 2:
             have = min(have, max(0, total_wheat - feed_floor))
-        if item == "FERTILIZER" and left > 3 and day >= 22:
-            # Fertilizer is a free byproduct of owning animals -- while
-            # cash is the binding constraint (day <22, money typically still
-            # under ~$100k) selling every unit to fund land/hands/animals
-            # beats any yield bonus. Only start holding a working reserve
-            # once the capital constraint has actually eased.
-            keep = min(FERTILIZER_KEEP, 4 * (day - 22))
-            have = max(0, have - keep)
         if have <= 0:
             continue
         raw_inventory = market_inventory.get(item)
