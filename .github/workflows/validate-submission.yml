@@ -1,0 +1,121 @@
+name: Validate Records Submission
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "records/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: validate-submission-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin "${{ github.base_ref }}" --depth=1
+
+      - name: Run structural checks
+        id: structural
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/validate_submission.py "origin/${{ github.base_ref }}" \
+            | tee structural_report.txt
+
+      - name: Claude submission review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --max-turns 12
+            --disallowedTools "Write,Edit,MultiEdit,NotebookEdit,mcp__github__create_or_update_file,mcp__github__push_files,mcp__github__delete_file,mcp__github__merge_pull_request,mcp__github__create_branch"
+          prompt: |
+            You are reviewing a pull request against the parameter-golf repository's
+            `/records` leaderboard. This is a compliance/sanity check, not a merge
+            decision -- a human maintainer makes the final call.
+
+            ## What already ran
+
+            A deterministic script already checked file presence, submission.json
+            required keys, and a rough artifact-size proxy. Read its output from
+            `structural_report.txt` at the repo root before doing anything else --
+            treat those findings as authoritative for what they check; don't
+            re-derive them.
+
+            ## What you should judge (things the script can't check)
+
+            Read the new folder(s) under `records/track_10min_16mb/` or
+            `records/track_non_record_16mb/` added or changed by this PR, and the
+            repository's `README.md` "Submission Process" and FAQ sections for the
+            full rules. Specifically assess:
+
+            1. **Scope**: Does this PR *only* add a new folder under the correct
+               `/records/<track>/` subfolder? Edits to `train_gpt.py` /
+               `train_gpt_mlx.py` are allowed only as tuning/simplification PRs on
+               core code, not mixed into a records submission.
+
+            2. **SOTA record claims**: If this claims to be a new SOTA record (in
+               `records/track_10min_16mb/`), does it document beating the previous
+               SOTA `val_bpb` by at least 0.005 nats, with evidence of statistical
+               significance at p < 0.01 (commonly shown via multiple seeds, e.g. 3
+               runs, with mean/std)? This requirement is waived only for pure systems/
+               speed optimizations that don't change the ML. If the PR doesn't clearly
+               show this evidence, say so explicitly.
+
+            3. **Tokenizer/dataset changes**: If the tokenizer or dataset handling was
+               modified, does the submission make a convincing case that `val_bpb` is
+               still computed correctly? Flag this for extra human scrutiny either way.
+
+            4. **Required files**: A README.md explaining the approach in reasonable
+               detail, a submission.json-like file with name/GitHub ID/val_bpb/
+               metadata, a run log demonstrating the result, and a train script that
+               looks like it would actually run standalone from within the record
+               folder (skim it for obvious breakage -- missing imports, placeholder
+               code, hardcoded paths outside the folder).
+
+            5. **Rule red flags** per the README FAQ: no access to validation data
+               during training, test-time training only on already-graded validation
+               tokens, no network calls or external downloads during evaluation, and
+               nothing that looks like it's smuggling extra compute (e.g. absurd seed
+               counts, offline brute-force search) presented as a fair run.
+
+            ## What you must NOT claim
+
+            You cannot actually reproduce the training run -- there is no 8xH100 GPU
+            in this CI environment. Do not claim the `val_bpb` score is verified or
+            reproduced. Explicitly note that score verification/reproduction remains a
+            manual maintainer step (per the repo's own FAQ: only top leaderboard
+            entries get independently reproduced over time).
+
+            ## Output
+
+            Post exactly one PR review comment (do not make code edits or commits)
+            structured as:
+
+            - A short verdict line: structural checks pass/fail, and your read on
+              rule-compliance (looks compliant / needs clarification / likely
+              non-compliant).
+            - A bullet list mapping each numbered item above to what you found.
+            - Anything you could not verify and why (e.g. "cannot confirm timing
+              claims without GPU access").
+
+            Keep it concise and factual -- this is a first-pass filter for maintainers,
+            not a final ruling.
+
+      - name: Fail if structural checks failed
+        if: steps.structural.outcome == 'failure'
+        run: |
+          echo "Structural validation failed -- see the 'Run structural checks' step and PR comment for details."
+          exit 1

@@ -236,6 +236,17 @@ Non-record submissions should be made in the same fashion as SOTA records, as de
 
 The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching-off points for new participants, not SOTA configs. We'll accept PRs that tune, improve, or simplify these scripts without significantly increasing complexity, but the best models should stay in the `/records` folder.
 
+#### Automated PR Validation
+
+Every PR touching `records/**` is checked by [`.github/workflows/validate-submission.yml`](.github/workflows/validate-submission.yml):
+
+1. A deterministic script (`.github/scripts/validate_submission.py`) checks the mechanical requirements: the PR only adds a new folder under the right `/records/<track>/` subfolder, the required files are present (`README.md`, a `submission.json`-style file with `author`/`github_id`/`val_bpb`, a training script, a run log), and a rough artifact-size proxy stays under the 16MB cap. This step fails the check if any of these are missing.
+2. Claude (via [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)) then reads the submission and posts a PR comment judging the things the script can't: whether a claimed SOTA record shows the required 0.005-nat improvement at `p < 0.01`, whether tokenizer/dataset changes are justified, and whether anything looks like it violates the evaluation rules in the FAQ above.
+
+**This does not reproduce training runs.** GitHub Actions runners don't have 8xH100 GPUs, so neither the script nor Claude can verify `val_bpb` or timing claims by actually running the submission. Treat a passing check as "structurally complete and no obvious rule violations," not "verified" — per the FAQ, independent reproduction of top leaderboard entries is still a manual maintainer step.
+
+Running this requires an `ANTHROPIC_API_KEY` repository secret (or `CLAUDE_CODE_OAUTH_TOKEN`) to be configured by a maintainer; the structural-check step runs regardless.
+
 ## Support
 
 
