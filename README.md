@@ -238,14 +238,20 @@ The `train_gpt.py` and `train_gpt_mlx.py` scripts are intended as good launching
 
 #### Automated PR Validation
 
-Every PR touching `records/**` is checked by [`.github/workflows/validate-submission.yml`](.github/workflows/validate-submission.yml):
+Every PR touching `records/**` goes through a validation gate in [`.github/workflows/validate-submission.yml`](.github/workflows/validate-submission.yml):
 
-1. A deterministic script (`.github/scripts/validate_submission.py`) checks the mechanical requirements: the PR only adds a new folder under the right `/records/<track>/` subfolder, the required files are present (`README.md`, a `submission.json`-style file with `author`/`github_id`/`val_bpb`, a training script, a run log), and a rough artifact-size proxy stays under the 16MB cap. This step fails the check if any of these are missing.
-2. Claude (via [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)) then reads the submission and posts a PR comment judging the things the script can't: whether a claimed SOTA record shows the required 0.005-nat improvement at `p < 0.01`, whether tokenizer/dataset changes are justified, and whether anything looks like it violates the evaluation rules in the FAQ above.
+1. A deterministic script (`.github/scripts/validate_submission.py`) checks the mechanical requirements: the PR only adds a new folder under the right `/records/<track>/` subfolder, the required files are present (`README.md`, a `submission.json`-style file with `author`/`github_id`/`val_bpb`, a training script, a run log), and a rough artifact-size proxy stays under the 16MB cap.
+2. Claude (via [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)) then reads the submission and judges what the script can't: whether a claimed SOTA record shows the required 0.005-nat improvement at `p < 0.01`, whether tokenizer/dataset changes are justified, and whether anything looks like it violates the evaluation rules in the FAQ above. It posts its reasoning as a PR comment either way.
+3. The two results are combined into one of three gate outcomes, each applied as a label on the PR:
+   - **`validation:ok`** — structural checks passed and Claude found no compliance problems worth blocking on.
+   - **`validation:needs-fixes`** — a concrete, fixable problem was found (missing file, out-of-scope PR, no significance evidence for a record claim, a rule violation, ...). A `[Fixes needed] ... (PR #N)` issue is opened automatically, listing each item; pushing an update to the PR re-runs the gate.
+   - **`validation:needs-info`** — compliance couldn't be determined from what's in the PR (including if the Claude step itself failed to run, e.g. API error). A `[Info needed] ... (PR #N)` issue is opened asking for clarification.
 
-**This does not reproduce training runs.** GitHub Actions runners don't have 8xH100 GPUs, so neither the script nor Claude can verify `val_bpb` or timing claims by actually running the submission. Treat a passing check as "structurally complete and no obvious rule violations," not "verified" — per the FAQ, independent reproduction of top leaderboard entries is still a manual maintainer step.
+   The check re-uses the same tracking issue on repeated pushes instead of opening duplicates.
 
-Running this requires an `ANTHROPIC_API_KEY` repository secret (or `CLAUDE_CODE_OAUTH_TOKEN`) to be configured by a maintainer; the structural-check step runs regardless.
+**This does not reproduce training runs.** GitHub Actions runners don't have 8xH100 GPUs, so neither the script nor Claude can verify `val_bpb` or timing claims by actually running the submission. Treat `validation:ok` as "structurally complete and no obvious rule violations," not "verified" — per the FAQ, independent reproduction of top leaderboard entries is still a manual maintainer step.
+
+Running this requires an `ANTHROPIC_API_KEY` repository secret (or `CLAUDE_CODE_OAUTH_TOKEN`) to be configured by a maintainer; the structural-check step and gate labeling run regardless.
 
 ## Support
 

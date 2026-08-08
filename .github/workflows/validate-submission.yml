@@ -1,5 +1,11 @@
 name: Validate Records Submission
 
+# Implements a "validation gate" for records/** submission PRs, modeled on the
+# completeness / correctness / consistency / policy gate pattern from
+# https://speakerdeck.com/yuyamaguchi/kagglenotamenoagentic-scheduling (p.9):
+# every job's output is checked and routed to OK (proceed) / NG (retry-fix
+# job) / needs-info (investigation job) instead of just pass/fail.
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -9,6 +15,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
   id-token: write
 
 concurrency:
@@ -42,9 +49,11 @@ jobs:
             --max-turns 12
             --disallowedTools "Write,Edit,MultiEdit,NotebookEdit,mcp__github__create_or_update_file,mcp__github__push_files,mcp__github__delete_file,mcp__github__merge_pull_request,mcp__github__create_branch"
           prompt: |
-            You are reviewing a pull request against the parameter-golf repository's
-            `/records` leaderboard. This is a compliance/sanity check, not a merge
-            decision -- a human maintainer makes the final call.
+            You are the validation gate for a pull request against the
+            parameter-golf repository's `/records` leaderboard. This is a
+            compliance/sanity check, not a merge decision -- a human maintainer
+            makes the final call. Your job has two deliverables: a human-readable
+            PR comment, and a machine-readable verdict file. Do both.
 
             ## What already ran
 
@@ -52,7 +61,8 @@ jobs:
             required keys, and a rough artifact-size proxy. Read its output from
             `structural_report.txt` at the repo root before doing anything else --
             treat those findings as authoritative for what they check; don't
-            re-derive them.
+            re-derive them. If it reports failures, that alone means completeness
+            has failed regardless of anything else you find.
 
             ## What you should judge (things the script can't check)
 
@@ -99,7 +109,7 @@ jobs:
             manual maintainer step (per the repo's own FAQ: only top leaderboard
             entries get independently reproduced over time).
 
-            ## Output
+            ## Deliverable 1: PR comment
 
             Post exactly one PR review comment (do not make code edits or commits)
             structured as:
@@ -114,8 +124,200 @@ jobs:
             Keep it concise and factual -- this is a first-pass filter for maintainers,
             not a final ruling.
 
-      - name: Fail if structural checks failed
-        if: steps.structural.outcome == 'failure'
+            ## Deliverable 2: machine-readable verdict
+
+            Pick exactly one of three outcomes and write it to
+            `validation_verdict.json` at the repo root using Bash (a heredoc is
+            fine), e.g.:
+
+            ```
+            cat > validation_verdict.json <<'EOF'
+            {
+              "verdict": "NG",
+              "summary": "One-sentence overall assessment.",
+              "issues": [
+                "Concrete, actionable item 1 (what's wrong and what to change).",
+                "Concrete, actionable item 2."
+              ]
+            }
+            EOF
+            ```
+
+            Choose `verdict` as:
+            - `"OK"`: structural checks passed AND you found no rule-compliance
+              problems worth blocking on. `issues` can be an empty list.
+            - `"NG"`: a concrete, fixable problem exists (missing required file,
+              PR touches files outside its scope, statistical significance not
+              demonstrated for a claimed record, an evaluation-rule violation,
+              etc.). List each concrete fix needed in `issues`.
+            - `"NEEDS_INFO"`: you cannot determine compliance from what's in the PR
+              -- something is ambiguous, underspecified, or you need the author to
+              clarify or provide more evidence (not a clear-cut violation). List
+              each open question in `issues`.
+
+            Only use `NEEDS_INFO` when the gap is genuinely about missing
+            information, not as a softer way to say `NG`.
+
+      - name: Read Claude verdict
+        id: verdict
+        # always() so a hard failure of the Claude step itself (API error,
+        # timeout, rate limit) still produces a verdict -- validation_verdict.json
+        # will simply be absent, which the script below already treats as
+        # NEEDS_INFO rather than leaving later steps with no gate outcome at all.
+        if: always()
         run: |
-          echo "Structural validation failed -- see the 'Run structural checks' step and PR comment for details."
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          import secrets
+
+          try:
+              with open("validation_verdict.json") as f:
+                  data = json.load(f)
+              v = data.get("verdict", "NEEDS_INFO")
+              if v not in ("OK", "NG", "NEEDS_INFO"):
+                  v = "NEEDS_INFO"
+              summary = data.get("summary", "")
+              issues = data.get("issues", [])
+          except (FileNotFoundError, json.JSONDecodeError):
+              v = "NEEDS_INFO"
+              summary = "Claude did not produce a readable validation_verdict.json."
+              issues = ["The validation gate could not parse Claude's verdict file -- see the workflow run logs and the PR comment (if any) directly."]
+
+          print(f"claude_verdict={v}")
+
+          # Multiline-safe GITHUB_OUTPUT encoding. summary/issues are
+          # Claude-influenced (it read PR content, which is attacker-controlled
+          # on a public repo), so the delimiter is randomized per run -- a
+          # static delimiter could be spoofed by content that happens to
+          # contain that exact line, forging extra GITHUB_OUTPUT entries.
+          def emit_multiline(name, value):
+              delim = f"GATE_EOF_{secrets.token_hex(16)}"
+              print(f"{name}<<{delim}")
+              print(value)
+              print(delim)
+
+          emit_multiline("summary", summary)
+          emit_multiline("issues", json.dumps(issues))
+          EOF
+
+      - name: Compute final gate outcome
+        id: gate
+        if: always()
+        run: |
+          if [ "${{ steps.structural.outcome }}" = "failure" ]; then
+            echo "final=NG" >> "$GITHUB_OUTPUT"
+          else
+            echo "final=${{ steps.verdict.outputs.claude_verdict }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure gate labels exist
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              { name: "validation:ok", color: "2da44e", description: "Automated validation gate: passed" },
+              { name: "validation:needs-fixes", color: "d73a4a", description: "Automated validation gate: concrete fixes required" },
+              { name: "validation:needs-info", color: "dbab09", description: "Automated validation gate: clarification needed" },
+            ];
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, ...label });
+              } catch (e) {
+                if (e.status !== 422) throw e; // 422 = already exists
+              }
+            }
+
+      - name: Apply gate label to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const gate = "${{ steps.gate.outputs.final }}";
+            const labelMap = { OK: "validation:ok", NG: "validation:needs-fixes", NEEDS_INFO: "validation:needs-info" };
+            const allLabels = Object.values(labelMap);
+            const prNumber = context.payload.pull_request.number;
+
+            const { data: current } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber,
+            });
+            const toRemove = current.filter(l => allLabels.includes(l.name) && l.name !== labelMap[gate]);
+            for (const l of toRemove) {
+              await github.rest.issues.removeLabel({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, name: l.name });
+            }
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, labels: [labelMap[gate]],
+            });
+
+      - name: Open or update follow-up issue (NG / NEEDS_INFO)
+        # always() because a plain `if:` is implicitly ANDed with success(),
+        # which would go permanently false (and skip this step) if the Claude
+        # action step itself hard-failed -- exactly the NEEDS_INFO case we
+        # most want an issue opened for.
+        if: always() && steps.gate.outputs.final != 'OK'
+        uses: actions/github-script@v7
+        env:
+          GATE: ${{ steps.gate.outputs.final }}
+          GATE_SUMMARY: ${{ steps.verdict.outputs.summary }}
+          GATE_ISSUES: ${{ steps.verdict.outputs.issues }}
+        with:
+          script: |
+            // GATE/GATE_SUMMARY/GATE_ISSUES are Claude-influenced (it read PR
+            // content, which is attacker-controlled on a public repo), so they're
+            // passed in via env and read through process.env rather than spliced
+            // into this script's source with ${{ }} -- avoids script injection.
+            const gate = process.env.GATE;
+            const pr = context.payload.pull_request;
+            const marker = `<!-- validation-gate-pr:${pr.number} -->`;
+            const kind = gate === "NG" ? "Fixes needed" : "Info needed";
+            const label = gate === "NG" ? "validation:needs-fixes" : "validation:needs-info";
+
+            let summary = process.env.GATE_SUMMARY || "";
+            let issues = [];
+            try { issues = JSON.parse(process.env.GATE_ISSUES || "[]"); } catch (e) { /* leave empty */ }
+
+            const bulletList = issues.length
+              ? issues.map(i => `- ${i}`).join("\n")
+              : "- (no itemized list provided -- see the PR review comment from Claude for details)";
+
+            const body = [
+              marker,
+              `Automated validation gate result for #${pr.number}: **${gate}**`,
+              "",
+              summary,
+              "",
+              bulletList,
+              "",
+              `See the full review comment on #${pr.number} for context. This issue was opened automatically by [.github/workflows/validate-submission.yml](../blob/main/.github/workflows/validate-submission.yml); once addressed, push updates to the PR and this check will re-run.`,
+            ].join("\n");
+
+            const search = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open "${marker}"`,
+            });
+
+            if (search.data.items.length > 0) {
+              const existing = search.data.items[0];
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number,
+                title: `[${kind}] ${pr.title} (PR #${pr.number})`, body,
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, labels: [label],
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: `[${kind}] ${pr.title} (PR #${pr.number})`, body, labels: [label],
+              });
+            }
+
+      - name: Summarize gate outcome
+        if: always()
+        run: |
+          echo "Validation gate outcome: ${{ steps.gate.outputs.final }}"
+
+      - name: Fail the check if gate is not OK
+        if: always() && steps.gate.outputs.final != 'OK'
+        run: |
+          echo "Validation gate result: ${{ steps.gate.outputs.final }} -- see the PR comment and/or the linked issue."
           exit 1
