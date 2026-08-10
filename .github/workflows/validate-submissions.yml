@@ -1,0 +1,67 @@
+name: Validate submissions
+
+# Validates Parameter Golf leaderboard submissions. On pull requests and pushes
+# it checks only the record folders that changed relative to the base branch, so
+# the historical corpus is grandfathered and only new/edited submissions are
+# gated. A manual run can audit every record folder.
+
+on:
+  pull_request:
+    paths:
+      - "records/**"
+      - "scripts/validate_submissions.py"
+      - ".github/workflows/validate-submissions.yml"
+  push:
+    paths:
+      - "records/**"
+      - "scripts/validate_submissions.py"
+      - ".github/workflows/validate-submissions.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Which records to validate"
+        type: choice
+        default: changed
+        options:
+          - changed
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # Full history so we can diff against the base branch.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Determine base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "branch=${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch base branch
+        run: git fetch --no-tags origin "${{ steps.base.outputs.branch }}" || true
+
+      - name: Validate submissions
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.mode }}" = "all" ]; then
+            # Manual full audit: report every issue but do not fail the run,
+            # since legacy records carry pre-existing inconsistencies.
+            python scripts/validate_submissions.py --all --warn-only
+          else
+            python scripts/validate_submissions.py --changed --base "origin/${{ steps.base.outputs.branch }}"
+          fi
